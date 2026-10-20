@@ -5,13 +5,19 @@ Veriler yalnızca telefonda durur; sunucu, hesap veya abonelik yok.
 
 ## Özellikler
 
-- Gelir ve gider kaydı, kategoriye göre
-- Aylık özet: kalan bakiye, tasarruf oranı, harcama dağılımı (donut), son 6 ay trendi
-- Kategori başına aylık bütçe limiti; %80'de uyarı, aşınca kırmızı
+- Gelir ve gider kaydı; kategoriye göre, notlu, ileri tarihli olabilir
+- Aylık özet: sayarak değişen bakiye, tasarruf oranı, harcama dağılımı, son 6 ay trendi
+- Göstergeler: geçen aya göre değişim, günlük ortalama, ay sonu tahmini
+- Grafikte kategoriye dokununca o kategorinin işlemleri; trendde aya dokununca o ay
+- Kategori başına aylık bütçe; %80'de uyarı, aşınca kırmızı, ay sonuna kadar günlük harcama hakkı
 - Düzenli ödemeler (kira, abonelik, maaş): her ay otomatik eklenir, açılmadığın ayları da tamamlar
-- Arama ve gelir/gider filtresi
-- Yedek alma (Dosyalar'a kaydet) ve geri yükleme
-- Telefonun ayarına göre otomatik koyu/açık tema
+- Kendi kategorilerin (ad, simge, renk)
+- Not önerileri: kategoride sık yazdığın notlar tek dokunuşla, son tutarıyla gelir
+- Silmeyi geri alma, kayıt bildirimleri
+- Arama, gelir/gider ve kategori filtresi
+- Yedek alma (Dosyalar'a kaydet), geri yükleme, 30 günde bir hatırlatma
+- Excel için CSV dışa aktarma
+- Sürükleyerek kapanan formlar, animasyonlar, otomatik koyu/açık tema
 
 ## iPhone'a kurulum
 
@@ -45,6 +51,9 @@ src/
     reducer.ts     Tüm veri değişiklikleri
     backup.ts      Yedek dosyası ve doğrulama
     turkish.ts     Yüzdelere doğru Türkçe ek (%90'ına, %83'üne)
+    suggestions.ts Not önerileri
+    csv.ts         Excel uyumlu CSV
+    backupReminder.ts Yedek hatırlatma kuralı
   views/       Ekranlar: Özet, İşlemler, Bütçe, Ayarlar
   components/  Form, sheet, grafikler, ortak parçalar
   store.tsx    Veriyi tutar, localStorage'a kaydeder
