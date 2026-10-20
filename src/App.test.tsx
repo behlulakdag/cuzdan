@@ -276,4 +276,39 @@ describe('Cüzdan', () => {
     expect(within(stats).getByText('daha az harcama')).toBeInTheDocument()
     expect(normalizeSpaces(within(stats).getByText('20 günde').parentElement!.textContent)).toContain('₺40')
   })
+
+  it('çok kayıt varken yedek hatırlatır, yedek alınınca hatırlatma kalkar', async () => {
+    const data = emptyData()
+    for (let i = 1; i <= 12; i++) {
+      data.transactions.push({
+        id: `t${i}`, type: 'expense', amount: 1000, categoryId: 'market', date: '2026-10-01', note: '',
+      })
+    }
+    URL.createObjectURL = vi.fn(() => 'blob:x')
+    URL.revokeObjectURL = vi.fn()
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const user = renderApp(data)
+
+    expect(screen.getByLabelText('Yedek alma zamanı')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Ayarlar/ }))
+    expect(screen.getByText('Hiç yedek alınmadı')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Dosyalar'a kaydet/ }))
+    expect(click).toHaveBeenCalled()
+    expect(await screen.findByText('Son yedek: bugün')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Yedek alma zamanı')).not.toBeInTheDocument()
+    expect(localStorage.getItem('cuzdan:lastBackup')).toBe('2026-10-20')
+  })
+
+  it('bütçede ay sonuna kadar günlük harcama hakkını gösterir', async () => {
+    const data = emptyData()
+    data.budgets = { market: 220000 }
+    data.transactions.push({
+      id: 'a', type: 'expense', amount: 100000, categoryId: 'market', date: '2026-10-05', note: '',
+    })
+    const user = renderApp(data)
+    await user.click(screen.getByRole('button', { name: /Bütçe/ }))
+    // Kalan 1.200 TL / 12 gün (20-31 Ekim)
+    expect(normalizeSpaces(screen.getByText(/Ay sonuna kadar günde/).textContent)).toContain('₺100,00')
+  })
 })

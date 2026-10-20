@@ -1,13 +1,15 @@
-import { createContext, useContext, useEffect, useReducer, type Dispatch, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useReducer, useState, type Dispatch, type ReactNode } from 'react'
 import { todayISO } from './domain/dates'
 import { reducer, type Action } from './domain/reducer'
 import type { AppData, Category } from './domain/types'
-import { loadData, requestPersistentStorage, saveData } from './storage'
+import { loadData, loadLastBackup, requestPersistentStorage, saveData, saveLastBackup } from './storage'
 
 interface Store {
   data: AppData
   dispatch: Dispatch<Action>
   categoryById: (id: string) => Category
+  lastBackup: string | null
+  markBackedUp: () => void
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -18,6 +20,12 @@ const UNKNOWN_CATEGORY: Category = {
 
 export function StoreProvider({ children, initialData }: { children: ReactNode; initialData?: AppData }) {
   const [data, dispatch] = useReducer(reducer, initialData, (init) => init ?? loadData())
+  const [lastBackup, setLastBackup] = useState(loadLastBackup)
+  const markBackedUp = () => {
+    const today = todayISO()
+    saveLastBackup(today)
+    setLastBackup(today)
+  }
 
   useEffect(() => {
     saveData(data)
@@ -36,7 +44,9 @@ export function StoreProvider({ children, initialData }: { children: ReactNode; 
   const categoryById = (id: string) => data.categories.find((c) => c.id === id) ?? UNKNOWN_CATEGORY
 
   return (
-    <StoreContext.Provider value={{ data, dispatch, categoryById }}>{children}</StoreContext.Provider>
+    <StoreContext.Provider value={{ data, dispatch, categoryById, lastBackup, markBackedUp }}>
+      {children}
+    </StoreContext.Provider>
   )
 }
 

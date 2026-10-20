@@ -21,14 +21,12 @@ export function AnimatedNumber({
   format: (v: number) => string
   className?: string
 }) {
-  const [shown, setShown] = useState(prefersReducedMotion() ? value : 0)
-  const from = useRef(shown)
+  const [reduceMotion] = useState(() => prefersReducedMotion() || typeof requestAnimationFrame === 'undefined')
+  const [shown, setShown] = useState(0)
+  const from = useRef(0)
 
   useEffect(() => {
-    if (prefersReducedMotion() || typeof requestAnimationFrame === 'undefined') {
-      setShown(value)
-      return
-    }
+    if (reduceMotion) return
     const start = performance.now()
     const startValue = from.current
     let frame = 0
@@ -41,11 +39,13 @@ export function AnimatedNumber({
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [value])
+  }, [value, reduceMotion])
+
+  const display = reduceMotion ? value : shown
 
   return (
     <span className={className}>
-      <span aria-hidden>{format(Math.round(shown))}</span>
+      <span aria-hidden>{format(Math.round(display))}</span>
       <span className="visually-hidden">{format(value)}</span>
     </span>
   )

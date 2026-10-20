@@ -2,8 +2,10 @@ import { useEffect, useRef, useState, type ComponentType, type SVGProps } from '
 import { GaugeIcon, GearIcon, HomeIcon, ListIcon, PlusIcon } from './components/Icons'
 import { ToastProvider } from './components/Toast'
 import { TransactionForm } from './components/TransactionForm'
+import { needsBackupReminder } from './domain/backupReminder'
 import { monthOf, todayISO } from './domain/dates'
 import type { MonthKey, Transaction } from './domain/types'
+import { useStore } from './store'
 import { BudgetView } from './views/BudgetView'
 import { SettingsView } from './views/SettingsView'
 import { SummaryView } from './views/SummaryView'
@@ -26,6 +28,8 @@ export default function App() {
   const [month, setMonth] = useState<MonthKey>(() => monthOf(todayISO()))
   const [form, setForm] = useState<FormState>(null)
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
+  const { data, lastBackup } = useStore()
+  const backupDue = needsBackupReminder(lastBackup, todayISO(), data.transactions.length)
 
   // Uygulama günlerce açık kalabilir; ay değiştiğinde "bu ay"a bakan kullanıcıyı yeni aya taşı.
   const lastCurrentMonth = useRef(month)
@@ -60,7 +64,10 @@ export default function App() {
       aria-current={tab === t.id ? 'page' : undefined}
       onClick={() => goTo(t.id)}
     >
-      <t.Icon />
+      <span className="tab-icon">
+        <t.Icon />
+        {t.id === 'settings' && backupDue && <span className="tab-badge" aria-label="Yedek alma zamanı" />}
+      </span>
       <span>{t.label}</span>
     </button>
   )

@@ -3,7 +3,8 @@ import { MonthPicker } from '../components/MonthPicker'
 import { Sheet, useSheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { formatTL, kurusToInput, parseTL } from '../domain/money'
-import { summarizeMonth, BUDGET_WARNING_RATIO } from '../domain/summary'
+import { dailyAllowance, summarizeMonth, BUDGET_WARNING_RATIO } from '../domain/summary'
+import { monthOf, todayISO } from '../domain/dates'
 import type { Category, MonthKey } from '../domain/types'
 import { useStore } from '../store'
 
@@ -48,6 +49,11 @@ export function BudgetView({ month, onMonthChange }: Props) {
               ? `${formatTL(totalLimit - budgetedSpent)} harcayabilirsin`
               : `${formatTL(budgetedSpent - totalLimit)} aştın`}
           </span>
+          {month === monthOf(todayISO()) && budgetedSpent < totalLimit && (
+            <span className="allowance">
+              Ay sonuna kadar günde <b>{formatTL(dailyAllowance(totalLimit - budgetedSpent, todayISO()))}</b>
+            </span>
+          )}
         </section>
       )}
 

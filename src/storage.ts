@@ -3,6 +3,24 @@ import { emptyData } from './domain/defaults'
 import type { AppData } from './domain/types'
 
 const STORAGE_KEY = 'cuzdan:data'
+// Yedek tarihi verinin parçası değil: yedekten geri yükleyince eski tarih geri gelmesin.
+const LAST_BACKUP_KEY = 'cuzdan:lastBackup'
+
+export function loadLastBackup(): string | null {
+  try {
+    return localStorage.getItem(LAST_BACKUP_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function saveLastBackup(date: string): void {
+  try {
+    localStorage.setItem(LAST_BACKUP_KEY, date)
+  } catch {
+    // Kaydedilemezse hatırlatıcı yine gösterilir; zararsız.
+  }
+}
 
 export function loadData(): AppData {
   try {

@@ -1764,6 +1764,54 @@ select {
   background: color-mix(in srgb, var(--orange) 16%, transparent);
 }
 
+/* ---------- Yedek ve hatırlatıcı ---------- */
+
+.row-button.with-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.backup-status {
+  font-size: 13px;
+  color: var(--label-2);
+}
+
+.backup-status.due {
+  color: var(--orange);
+  font-weight: 500;
+}
+
+.tab-icon {
+  position: relative;
+  display: grid;
+}
+
+.tab-badge {
+  position: absolute;
+  top: -1px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 2px var(--tabbar-bg);
+  animation: pop-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.5);
+}
+
+.allowance {
+  margin-top: 4px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  font-size: 14px;
+}
+
+.allowance b {
+  color: var(--income);
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

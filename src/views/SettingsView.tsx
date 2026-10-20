@@ -4,10 +4,13 @@ import { CategoryManager } from '../components/CategoryManager'
 import { RecurringForm } from '../components/RecurringForm'
 import { useToast } from '../components/Toast'
 import { BackupError, parseBackup, serializeBackup } from '../domain/backup'
+import { lastBackupLabel, needsBackupReminder } from '../domain/backupReminder'
+import { transactionsToCsv } from '../domain/csv'
 import { todayISO } from '../domain/dates'
 import { emptyData } from '../domain/defaults'
 import { formatTL } from '../domain/money'
 import type { RecurringRule } from '../domain/types'
+import { shareOrDownload } from '../share'
 import { useStore } from '../store'
 
 type Editing = { rule?: RecurringRule } | null
@@ -18,33 +21,38 @@ const isStandalone = () =>
   (navigator as Navigator & { standalone?: boolean }).standalone === true
 
 export function SettingsView() {
-  const { data, dispatch, categoryById } = useStore()
+  const { data, dispatch, categoryById, lastBackup, markBackedUp } = useStore()
   const [editing, setEditing] = useState<Editing>(null)
   const toast = useToast()
   const [managingCategories, setManagingCategories] = useState(false)
+  const backupDue = needsBackupReminder(lastBackup, todayISO(), data.transactions.length)
   const fileInput = useRef<HTMLInputElement>(null)
 
-  const exportBackup = async () => {
-    const fileName = `cuzdan-yedek-${todayISO()}.json`
-    const file = new File([serializeBackup(data)], fileName, { type: 'application/json' })
-    // iOS'ta paylaşım sayfası "Dosyalar'a Kaydet" seçeneği sunar; indirme bağlantısı orada güvenilir değil.
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: 'Cüzdan yedeği' })
-        toast({ text: 'Yedek paylaşıldı' })
-      } catch (err) {
-        if ((err as Error).name !== 'AbortError') toast({ kind: 'error', text: 'Paylaşılamadı' })
-      }
-      return
+  const exportFile = async (file: File, title: string, onDone?: () => void) => {
+    try {
+      const result = await shareOrDownload(file, title)
+      if (result === 'cancelled') return
+      onDone?.()
+      toast({ text: result === 'shared' ? `${title} paylaşıldı` : `${title} indirildi` })
+    } catch {
+      toast({ kind: 'error', text: 'Paylaşılamadı' })
     }
-    const url = URL.createObjectURL(file)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = fileName
-    a.click()
-    URL.revokeObjectURL(url)
-    toast({ text: 'Yedek indirildi' })
   }
+
+  const exportBackup = () =>
+    exportFile(
+      new File([serializeBackup(data)], `cuzdan-yedek-${todayISO()}.json`, { type: 'application/json' }),
+      'Yedek',
+      markBackedUp,
+    )
+
+  const exportCsv = () =>
+    exportFile(
+      new File([transactionsToCsv(data.transactions, categoryById)], `cuzdan-islemler-${todayISO()}.csv`, {
+        type: 'text/csv',
+      }),
+      'Tablo',
+    )
 
   const importBackup = async (file: File) => {
     try {
@@ -131,11 +139,22 @@ export function SettingsView() {
 
       <h3 className="section-title">Yedekleme</h3>
       <div className="group">
-        <button type="button" className="row-button" onClick={exportBackup}>
-          Yedek al (Dosyalar'a kaydet)
+        <button type="button" className="row-button with-status" onClick={exportBackup}>
+          <span>Yedek al (Dosyalar'a kaydet)</span>
+          <span className={`backup-status ${backupDue ? 'due' : ''}`}>
+            {lastBackupLabel(lastBackup, todayISO())}
+          </span>
         </button>
         <button type="button" className="row-button" onClick={() => fileInput.current?.click()}>
           Yedekten geri yükle
+        </button>
+        <button
+          type="button"
+          className="row-button"
+          onClick={exportCsv}
+          disabled={data.transactions.length === 0}
+        >
+          Excel tablosu olarak dışa aktar (CSV)
         </button>
       </div>
       <input
