@@ -1,5 +1,6 @@
-import { addMonths, monthOf } from './dates'
-import type { Kurus, MonthKey, Transaction } from './types'
+import { addMonths, daysInMonth, monthOf } from './dates'
+import { nextDueDate } from './recurring'
+import type { ISODate, Kurus, MonthKey, RecurringRule, Transaction } from './types'
 
 export interface MonthSummary {
   income: Kurus
@@ -92,4 +93,70 @@ export function groupByDay(transactions: Transaction[]): [string, Transaction[]]
     else groups.set(t.date, [t])
   }
   return [...groups.entries()]
+}
+
+export interface MonthInsights {
+  /** Geçen aya göre gider değişimi (0.12 = %12 artış); geçen ay gider yoksa null */
+  expenseChange: number | null
+  previousExpense: Kurus
+  /** Geçen günlere bölünmüş günlük ortalama gider */
+  dailyAverage: Kurus
+  /** Bu ay için, bu hızla giderse ay sonu toplam gider; geçmiş/gelecek aylarda null */
+  projectedExpense: Kurus | null
+  daysElapsed: number
+}
+
+/** Ay sonu tahmini için gereken en az gün; ayın ilk günlerinde tahmin çok oynak oluyor. */
+const MIN_DAYS_FOR_PROJECTION = 5
+
+export function monthInsights(
+  transactions: Transaction[],
+  month: MonthKey,
+  today: ISODate,
+  rules: RecurringRule[] = [],
+): MonthInsights {
+  const current = summarizeMonth(transactions, month)
+  const previous = summarizeMonth(transactions, addMonths(month, -1))
+  const totalDays = daysInMonth(month)
+  const currentMonth = monthOf(today)
+  const daysElapsed =
+    month === currentMonth ? Number(today.slice(8, 10)) : month < currentMonth ? totalDays : 0
+
+  return {
+    expenseChange: previous.expense > 0 ? (current.expense - previous.expense) / previous.expense : null,
+    previousExpense: previous.expense,
+    dailyAverage: daysElapsed > 0 ? Math.round(current.expense / daysElapsed) : 0,
+    projectedExpense:
+      month === currentMonth && daysElapsed >= MIN_DAYS_FOR_PROJECTION
+        ? projectMonthEnd(transactions, rules, month, today, daysElapsed, totalDays)
+        : null,
+    daysElapsed,
+  }
+}
+
+/**
+ * Düzenli ödemeler (kira, abonelik) günlük hıza katılırsa ay başında ödenen kira tahmini
+ * katlıyordu. Bu yüzden sabit giderler olduğu gibi eklenir, yalnızca diğerleri günlere yayılır.
+ */
+function projectMonthEnd(
+  transactions: Transaction[],
+  rules: RecurringRule[],
+  month: MonthKey,
+  today: ISODate,
+  daysElapsed: number,
+  totalDays: number,
+): Kurus {
+  let fixed = 0
+  let variable = 0
+  for (const t of transactions) {
+    if (t.type !== 'expense' || monthOf(t.date) !== month) continue
+    if (t.recurringId) fixed += t.amount
+    else variable += t.amount
+  }
+  const upcomingFixed = rules
+    .filter((r) => r.type === 'expense')
+    .map((r) => ({ r, due: nextDueDate(r) }))
+    .filter(({ due }) => monthOf(due) === month && due > today)
+    .reduce((sum, { r }) => sum + r.amount, 0)
+  return Math.round(fixed + upcomingFixed + (variable / daysElapsed) * totalDays)
 }

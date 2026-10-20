@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { budgetStatuses, groupByDay, monthlyTrend, summarizeMonth } from './summary'
+import { budgetStatuses, groupByDay, monthInsights, monthlyTrend, summarizeMonth } from './summary'
 import type { Transaction } from './types'
 
 const tx = (p: Partial<Transaction> & Pick<Transaction, 'amount' | 'date'>): Transaction => ({
@@ -56,5 +56,40 @@ describe('groupByDay', () => {
     const groups = groupByDay(data)
     expect(groups.map(([d]) => d)).toEqual(['2026-10-15', '2026-10-02', '2026-10-01', '2026-09-30'])
     expect(groups[0][1].map((t) => t.categoryId)).toEqual(['yemek', 'market'])
+  })
+})
+
+describe('monthInsights', () => {
+  it('geçen ayla karşılaştırır, günlük ortalama ve ay sonu tahmini verir', () => {
+    // Ekim gideri 115000, Eylül 99999; bugün 20 Ekim
+    const i = monthInsights(data, '2026-10', '2026-10-20')
+    expect(i.expenseChange).toBeCloseTo(115000 / 99999 - 1)
+    expect(i.daysElapsed).toBe(20)
+    expect(i.dailyAverage).toBe(5750)
+    expect(i.projectedExpense).toBe(178250)
+  })
+
+  it('geçmiş ayda tüm günleri sayar, tahmin vermez', () => {
+    const i = monthInsights(data, '2026-09', '2026-10-20')
+    expect(i.daysElapsed).toBe(30)
+    expect(i.projectedExpense).toBeNull()
+    expect(i.expenseChange).toBeNull()
+  })
+
+  it('ayın ilk günlerinde oynak tahmin vermez', () => {
+    expect(monthInsights(data, '2026-10', '2026-10-03').projectedExpense).toBeNull()
+  })
+
+  it('düzenli giderleri günlere yaymaz, ayın kalanındaki vadeleri ekler', () => {
+    const list: Transaction[] = [
+      tx({ amount: 1200000, date: '2026-10-03', categoryId: 'kira', recurringId: 'kira' }),
+      tx({ amount: 100000, date: '2026-10-10' }),
+    ]
+    const netflix = {
+      id: 'n', type: 'expense' as const, amount: 23000, categoryId: 'abonelik', note: '',
+      dayOfMonth: 28, startMonth: '2026-10',
+    }
+    // 1.000 TL değişken gider / 20 gün * 31 gün = 1.550 TL + 12.000 kira + 230 Netflix
+    expect(monthInsights(list, '2026-10', '2026-10-20', [netflix]).projectedExpense).toBe(1378000)
   })
 })
