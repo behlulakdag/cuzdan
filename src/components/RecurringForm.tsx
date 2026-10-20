@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { todayISO } from '../domain/dates'
 import { isDueThisMonth, startMonthForNewRule } from '../domain/recurring'
 import { newId } from '../domain/defaults'
+import { RECURRING_PRESETS, type RecurringPreset } from '../domain/presets'
 import { formatTL, kurusToInput, parseTL } from '../domain/money'
 import type { RecurringRule, TxType } from '../domain/types'
 import { useStore } from '../store'
@@ -31,6 +32,14 @@ export function RecurringForm({ existing, onClose }: Props) {
   const categories = data.categories.filter((c) => c.type === type)
   const amount = parseTL(amountText)
   const canSave = amount !== null && categories.some((c) => c.id === categoryId)
+
+  // Kullanıcı varsayılan kategoriyi silmişse ön ayar o kategoriyi seçmez, sadece adı doldurur.
+  const applyPreset = (preset: RecurringPreset) => {
+    setType(preset.type)
+    setNote(preset.label)
+    const categoryExists = data.categories.some((c) => c.id === preset.categoryId && c.type === preset.type)
+    setCategoryId(categoryExists ? preset.categoryId : '')
+  }
   const dirty = existing
     ? amount !== existing.amount || categoryId !== existing.categoryId || day !== existing.dayOfMonth ||
       note.trim() !== existing.note || type !== existing.type
@@ -78,6 +87,20 @@ export function RecurringForm({ existing, onClose }: Props) {
           save()
         }}
       >
+        {!existing && (
+          <div className="suggestions presets" aria-label="Hızlı seçim">
+            {RECURRING_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                className={`suggestion ${note === p.label ? 'selected' : ''}`}
+                onClick={() => applyPreset(p)}
+              >
+                <span aria-hidden>{p.emoji}</span> {p.label}
+              </button>
+            ))}
+          </div>
+        )}
         <SegmentedControl
           label="Tür"
           value={type}

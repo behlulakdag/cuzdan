@@ -311,4 +311,21 @@ describe('Cüzdan', () => {
     // Kalan 1.200 TL / 12 gün (20-31 Ekim)
     expect(normalizeSpaces(screen.getByText(/Ay sonuna kadar günde/).textContent)).toContain('₺100,00')
   })
+
+  it('hızlı seçimle Claude aboneliği eklenir', async () => {
+    const user = renderApp()
+    await user.click(screen.getByRole('button', { name: /Ayarlar/ }))
+    await user.click(screen.getByRole('button', { name: /Düzenli ödeme ekle/ }))
+    const dialog = screen.getByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: /Claude/ }))
+    expect(within(dialog).getByLabelText('Not')).toHaveValue('Claude')
+    expect(within(dialog).getByRole('radio', { name: /Abonelik/ })).toHaveAttribute('aria-checked', 'true')
+
+    await user.type(within(dialog).getByLabelText('Tutar'), '850')
+    await user.selectOptions(within(dialog).getByLabelText('Ayın kaçında'), '25')
+    await user.click(within(dialog).getByRole('button', { name: 'Kaydet' }))
+
+    const rule = JSON.parse(localStorage.getItem('cuzdan:data')!).data.recurring[0]
+    expect(rule).toMatchObject({ note: 'Claude', categoryId: 'abonelik', amount: 85000, dayOfMonth: 25 })
+  })
 })

@@ -1812,6 +1812,21 @@ select {
   font-variant-numeric: tabular-nums;
 }
 
+.suggestions.presets {
+  margin: 0 -16px;
+  padding: 2px 16px 4px;
+}
+
+.suggestions.presets .suggestion {
+  flex-direction: row;
+  gap: 4px;
+}
+
+.suggestion.selected {
+  background: var(--accent);
+  color: #fff;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;
