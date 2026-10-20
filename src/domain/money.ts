@@ -23,6 +23,9 @@ const tlCompactFormatter = new Intl.NumberFormat('tr-TR', {
   maximumFractionDigits: 1,
 })
 
+/** Yanlışlıkla fazladan sıfır yazılmasına karşı üst sınır: 100 milyon TL */
+export const MAX_AMOUNT: Kurus = 100_000_000_00
+
 /** Bu tutarın altında kısaltma yapılmaz ("₺249,9" yerine "₺250"). */
 const COMPACT_THRESHOLD: Kurus = 100_000_00
 
@@ -60,7 +63,7 @@ export function parseTL(input: string): Kurus | null {
   if (!/^\d+(\.\d{0,2})?$/.test(s)) return null
   const [whole, frac = ''] = s.split('.')
   const kurus = Number(whole) * 100 + Number(frac.padEnd(2, '0'))
-  return kurus > 0 ? kurus : null
+  return kurus > 0 && kurus <= MAX_AMOUNT ? kurus : null
 }
 
 /** Düzenleme formunda göstermek için: 123456 -> "1234,56" */

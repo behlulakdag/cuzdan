@@ -1,4 +1,4 @@
-import { useState, type ComponentType, type SVGProps } from 'react'
+import { useEffect, useRef, useState, type ComponentType, type SVGProps } from 'react'
 import { GaugeIcon, GearIcon, HomeIcon, ListIcon, PlusIcon } from './components/Icons'
 import { TransactionForm } from './components/TransactionForm'
 import { monthOf, todayISO } from './domain/dates'
@@ -24,6 +24,24 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('summary')
   const [month, setMonth] = useState<MonthKey>(() => monthOf(todayISO()))
   const [form, setForm] = useState<FormState>(null)
+
+  // Uygulama günlerce açık kalabilir; ay değiştiğinde "bu ay"a bakan kullanıcıyı yeni aya taşı.
+  const lastCurrentMonth = useRef(month)
+  useEffect(() => {
+    const syncMonth = () => {
+      const now = monthOf(todayISO())
+      const previous = lastCurrentMonth.current
+      if (now === previous) return
+      lastCurrentMonth.current = now
+      setMonth((shown) => (shown === previous ? now : shown))
+    }
+    document.addEventListener('visibilitychange', syncMonth)
+    const timer = setInterval(syncMonth, 60_000)
+    return () => {
+      document.removeEventListener('visibilitychange', syncMonth)
+      clearInterval(timer)
+    }
+  }, [])
 
   const current = TABS.find((t) => t.id === tab)!
   const tabButton = (t: (typeof TABS)[number]) => (

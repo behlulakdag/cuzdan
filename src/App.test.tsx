@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -134,5 +134,61 @@ describe('Cüzdan', () => {
     await user.type(screen.getByLabelText('İşlemlerde ara'), 'istanbul')
     expect(screen.getByText('İstanbulkart')).toBeInTheDocument()
     expect(screen.queryByText('Pizza')).not.toBeInTheDocument()
+  })
+
+  it('Ayarlardan geçmiş günlü düzenli ödeme eklerken bu ayı varsayılan olarak atlar', async () => {
+    const user = renderApp()
+    await user.click(screen.getByRole('button', { name: /Ayarlar/ }))
+    await user.click(screen.getByRole('button', { name: /Düzenli ödeme ekle/ }))
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByLabelText('Tutar'), '229,99')
+    await user.click(within(dialog).getByRole('radio', { name: /Abonelik/ }))
+    await user.selectOptions(within(dialog).getByLabelText('Ayın kaçında'), '10')
+    expect(within(dialog).getByLabelText('Bu ayınkini de ekle')).not.toBeChecked()
+    await user.click(within(dialog).getByRole('button', { name: 'Kaydet' }))
+
+    const stored = JSON.parse(localStorage.getItem('cuzdan:data')!).data
+    expect(stored.transactions).toEqual([])
+    expect(stored.recurring[0].startMonth).toBe('2026-11')
+  })
+
+  it('istenirse bu ayınkini de ekler', async () => {
+    const user = renderApp()
+    await user.click(screen.getByRole('button', { name: /Ayarlar/ }))
+    await user.click(screen.getByRole('button', { name: /Düzenli ödeme ekle/ }))
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByLabelText('Tutar'), '100')
+    await user.click(within(dialog).getByRole('radio', { name: /Abonelik/ }))
+    await user.selectOptions(within(dialog).getByLabelText('Ayın kaçında'), '10')
+    await user.click(within(dialog).getByLabelText('Bu ayınkini de ekle'))
+    await user.click(within(dialog).getByRole('button', { name: 'Kaydet' }))
+
+    const stored = JSON.parse(localStorage.getItem('cuzdan:data')!).data
+    expect(stored.transactions.map((t: { date: string }) => t.date)).toEqual(['2026-10-10'])
+  })
+
+  it('geçmiş aya bakarken bakiye etiketi değişir ve bu aya dönülebilir', async () => {
+    const user = renderApp()
+    await user.click(screen.getByRole('button', { name: 'Önceki ay' }))
+    expect(screen.getByText('Ay sonu kalan')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /bu aya dön/ }))
+    expect(screen.getByText('Bu ay kalan')).toBeInTheDocument()
+  })
+
+  it('ileri tarihli işlemi görmek için sonraki aylara geçilebilir', async () => {
+    const user = renderApp()
+    await user.click(screen.getByRole('button', { name: 'Sonraki ay' }))
+    expect(screen.getByText('Kasım 2026')).toBeInTheDocument()
+    expect(screen.getByText('Planlanan')).toBeInTheDocument()
+  })
+
+  it('uygulama açıkken ay değişirse yeni aya geçer', async () => {
+    renderApp()
+    expect(screen.getByText('Ekim 2026')).toBeInTheDocument()
+    vi.setSystemTime(new Date(2026, 10, 1, 9, 0))
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(screen.getByText('Kasım 2026')).toBeInTheDocument()
   })
 })

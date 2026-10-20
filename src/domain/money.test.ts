@@ -16,7 +16,7 @@ describe('parseTL', () => {
     expect(parseTL(input)).toBe(expected)
   })
 
-  it.each(['', 'abc', '0', '0,00', '-5', '1,234', '12,345', '1.2.3', '5,123'])(
+  it.each(['', 'abc', '0', '0,00', '-5', '1,234', '12,345', '1.2.3', '5,123', '100000001', '9999999999999'])(
     '%s geçersiz sayılır',
     (input) => {
       // "1,234" belirsizdir; 1,23 mü 1234 mü bilinemez, ama tek virgül TR'de ondalık

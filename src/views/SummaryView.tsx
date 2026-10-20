@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { DonutChart, TrendChart, type DonutSlice } from '../components/charts'
 import { MonthPicker } from '../components/MonthPicker'
-import { dayLabel } from '../domain/dates'
+import { dayLabel, monthOf, todayISO } from '../domain/dates'
 import { formatTL } from '../domain/money'
 import { nextDueDate } from '../domain/recurring'
 import { budgetStatuses, monthlyTrend, summarizeMonth } from '../domain/summary'
@@ -45,7 +45,9 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
       <MonthPicker month={month} onChange={onMonthChange} />
 
       <section className={`balance-card ${summary.balance < 0 ? 'negative' : ''}`}>
-        <span className="balance-label">Bu ay kalan</span>
+        <span className="balance-label">
+          {month === monthOf(todayISO()) ? 'Bu ay kalan' : month < monthOf(todayISO()) ? 'Ay sonu kalan' : 'Planlanan'}
+        </span>
         <strong className="balance-value">{formatTL(summary.balance)}</strong>
         {savingsRate !== null && (
           <span className="balance-rate">

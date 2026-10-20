@@ -11,6 +11,18 @@ export function todayISO(): ISODate {
   return toISODate(new Date())
 }
 
+/** Öğlen saatinden hesaplanır; yaz saati geçişinde gün atlamasın diye. */
+export function addDays(date: ISODate, delta: number): ISODate {
+  const d = new Date(date + 'T12:00')
+  d.setDate(d.getDate() + delta)
+  return toISODate(d)
+}
+
+/** İki tarih arasındaki gün farkı (b - a) */
+export function daysBetween(a: ISODate, b: ISODate): number {
+  return Math.round((new Date(b + 'T12:00').getTime() - new Date(a + 'T12:00').getTime()) / 864e5)
+}
+
 export function monthOf(date: ISODate): MonthKey {
   return date.slice(0, 7)
 }
@@ -54,8 +66,8 @@ export function monthShortLabel(month: MonthKey): string {
 
 export function dayLabel(date: ISODate, today: ISODate = todayISO()): string {
   if (date === today) return 'Bugün'
-  const yesterday = toISODate(new Date(new Date(today + 'T12:00').getTime() - 864e5))
-  if (date === yesterday) return 'Dün'
+  if (date === addDays(today, -1)) return 'Dün'
+  if (date === addDays(today, 1)) return 'Yarın'
   const d = new Date(date + 'T12:00')
   return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' })
 }

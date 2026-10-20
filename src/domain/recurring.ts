@@ -1,5 +1,5 @@
 import { addMonths, dateInMonth, monthOf, monthRange } from './dates'
-import type { ISODate, RecurringRule, Transaction } from './types'
+import type { ISODate, MonthKey, RecurringRule, Transaction } from './types'
 
 /**
  * Bugüne kadar vadesi gelmiş ama henüz üretilmemiş düzenli işlemleri üretir.
@@ -41,4 +41,23 @@ export function materializeRecurring(
 export function nextDueDate(rule: RecurringRule): ISODate {
   const from = rule.generatedThrough ? addMonths(rule.generatedThrough, 1) : rule.startMonth
   return dateInMonth(from, rule.dayOfMonth)
+}
+
+/**
+ * Yeni bir düzenli ödemenin başlangıç ayı. Bu ayın ödeme günü geçtiyse kullanıcı büyük
+ * ihtimalle o ödemeyi zaten elle girmiştir; açıkça istemedikçe bu ay için kayıt üretilmez.
+ */
+export function startMonthForNewRule(
+  dayOfMonth: number,
+  today: ISODate,
+  includeCurrentMonth: boolean,
+): MonthKey {
+  const currentMonth = monthOf(today)
+  const alreadyDue = dateInMonth(currentMonth, dayOfMonth) <= today
+  return alreadyDue && !includeCurrentMonth ? addMonths(currentMonth, 1) : currentMonth
+}
+
+/** Bu ayın ödeme günü bugün ya da daha önce mi? */
+export function isDueThisMonth(dayOfMonth: number, today: ISODate): boolean {
+  return dateInMonth(monthOf(today), dayOfMonth) <= today
 }

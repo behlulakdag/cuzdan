@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { monthOf, todayISO } from '../domain/dates'
+import { todayISO } from '../domain/dates'
+import { isDueThisMonth, startMonthForNewRule } from '../domain/recurring'
 import { newId } from '../domain/defaults'
 import { kurusToInput, parseTL } from '../domain/money'
 import type { RecurringRule, TxType } from '../domain/types'
@@ -20,6 +21,9 @@ export function RecurringForm({ existing, onClose }: Props) {
   const [categoryId, setCategoryId] = useState(existing?.categoryId ?? '')
   const [day, setDay] = useState(existing?.dayOfMonth ?? Number(todayISO().slice(8, 10)))
   const [note, setNote] = useState(existing?.note ?? '')
+  const [includeThisMonth, setIncludeThisMonth] = useState(false)
+  const today = todayISO()
+  const askAboutThisMonth = !existing && isDueThisMonth(day, today)
 
   const categories = data.categories.filter((c) => c.type === type)
   const amount = parseTL(amountText)
@@ -36,10 +40,9 @@ export function RecurringForm({ existing, onClose }: Props) {
           categoryId,
           note: note.trim(),
           dayOfMonth: day,
-          // Yeni kural bu aydan başlar; geçmiş aylar için işlem uydurmaz.
-          startMonth: monthOf(todayISO()),
+          startMonth: startMonthForNewRule(day, today, includeThisMonth),
         }
-    dispatch({ type: existing ? 'rule/update' : 'rule/add', rule, today: todayISO() })
+    dispatch({ type: existing ? 'rule/update' : 'rule/add', rule, today })
     onClose()
   }
 
@@ -108,6 +111,25 @@ export function RecurringForm({ existing, onClose }: Props) {
             />
           </label>
         </div>
+        {askAboutThisMonth && (
+          <>
+            <div className="group">
+              <label className="row">
+                <span>Bu ayınkini de ekle</span>
+                <input
+                  type="checkbox"
+                  className="switch"
+                  checked={includeThisMonth}
+                  onChange={(e) => setIncludeThisMonth(e.target.checked)}
+                />
+              </label>
+            </div>
+            <p className="hint">
+              Bu ayın {day}. günü geçti. Bu ayki ödemeyi zaten girdiysen kapalı bırak, yoksa çift
+              kayıt olur.
+            </p>
+          </>
+        )}
         {day > 28 && <p className="hint">Kısa aylarda ayın son gününe kaydırılır.</p>}
         {existing && (
           <>

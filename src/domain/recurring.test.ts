@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { materializeRecurring, nextDueDate } from './recurring'
+import { isDueThisMonth, materializeRecurring, nextDueDate, startMonthForNewRule } from './recurring'
 import type { RecurringRule } from './types'
 
 const rent: RecurringRule = {
@@ -56,5 +56,22 @@ describe('nextDueDate', () => {
   it('son üretilen aydan sonraki vadeyi verir', () => {
     expect(nextDueDate(rent)).toBe('2026-08-05')
     expect(nextDueDate({ ...rent, generatedThrough: '2026-10' })).toBe('2026-11-05')
+  })
+})
+
+describe('startMonthForNewRule', () => {
+  it('ödeme günü geçtiyse varsayılan olarak gelecek aydan başlar (çift kaydı önler)', () => {
+    expect(startMonthForNewRule(10, '2026-10-20', false)).toBe('2026-11')
+    expect(startMonthForNewRule(20, '2026-10-20', false)).toBe('2026-11')
+  })
+  it('istenirse bu ayı da dahil eder', () => {
+    expect(startMonthForNewRule(10, '2026-10-20', true)).toBe('2026-10')
+  })
+  it('ödeme günü henüz gelmediyse bu aydan başlar', () => {
+    expect(startMonthForNewRule(25, '2026-10-20', false)).toBe('2026-10')
+  })
+  it('31i seçilen kural kısa ayda ayın son günü üzerinden değerlendirilir', () => {
+    expect(startMonthForNewRule(31, '2027-02-28', false)).toBe('2027-03')
+    expect(isDueThisMonth(31, '2027-02-27')).toBe(false)
   })
 })
