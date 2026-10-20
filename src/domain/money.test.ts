@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatTL, kurusToInput, parseTL } from './money'
+import { formatTL, formatTLCompact, kurusToInput, parseTL } from './money'
 
 describe('parseTL', () => {
   it.each([
@@ -37,5 +37,16 @@ describe('kurusToInput', () => {
     expect(kurusToInput(15000)).toBe('150')
     expect(kurusToInput(15005)).toBe('150,05')
     expect(parseTL(kurusToInput(98765))).toBe(98765)
+  })
+})
+
+describe('formatTLCompact', () => {
+  const clean = (s: string) => s.replace(/\s/g, ' ')
+  it('küçük tutarları kuruşsuz tam yazar', () => {
+    expect(clean(formatTLCompact(24990))).toBe('₺250')
+    expect(clean(formatTLCompact(3500000))).toBe('₺35.000')
+  })
+  it('büyük tutarları kısaltır', () => {
+    expect(clean(formatTLCompact(125000000))).toMatch(/^₺1,3 Mn$/)
   })
 })

@@ -7,19 +7,32 @@ const tlFormatter = new Intl.NumberFormat('tr-TR', {
   maximumFractionDigits: 2,
 })
 
+// minimumFractionDigits açıkça verilmezse bazı tarayıcılar TRY'nin varsayılan 2 hanesini koruyor.
+const tlWholeFormatter = new Intl.NumberFormat('tr-TR', {
+  style: 'currency',
+  currency: 'TRY',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+})
+
 const tlCompactFormatter = new Intl.NumberFormat('tr-TR', {
   style: 'currency',
   currency: 'TRY',
   notation: 'compact',
+  minimumFractionDigits: 0,
   maximumFractionDigits: 1,
 })
+
+/** Bu tutarın altında kısaltma yapılmaz ("₺249,9" yerine "₺250"). */
+const COMPACT_THRESHOLD: Kurus = 100_000_00
 
 export function formatTL(amount: Kurus): string {
   return tlFormatter.format(amount / 100)
 }
 
 export function formatTLCompact(amount: Kurus): string {
-  return tlCompactFormatter.format(amount / 100)
+  const formatter = Math.abs(amount) < COMPACT_THRESHOLD ? tlWholeFormatter : tlCompactFormatter
+  return formatter.format(amount / 100)
 }
 
 /**

@@ -1,122 +1,75 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, type ComponentType, type SVGProps } from 'react'
+import { GaugeIcon, GearIcon, HomeIcon, ListIcon, PlusIcon } from './components/Icons'
+import { TransactionForm } from './components/TransactionForm'
+import { monthOf, todayISO } from './domain/dates'
+import type { MonthKey, Transaction } from './domain/types'
+import { BudgetView } from './views/BudgetView'
+import { SettingsView } from './views/SettingsView'
+import { SummaryView } from './views/SummaryView'
+import { TransactionsView } from './views/TransactionsView'
 
-function App() {
-  const [count, setCount] = useState(0)
+type Tab = 'summary' | 'transactions' | 'budget' | 'settings'
+
+const TABS: { id: Tab; label: string; title: string; Icon: ComponentType<SVGProps<SVGSVGElement>> }[] = [
+  { id: 'summary', label: 'Özet', title: 'Cüzdan', Icon: HomeIcon },
+  { id: 'transactions', label: 'İşlemler', title: 'İşlemler', Icon: ListIcon },
+  { id: 'budget', label: 'Bütçe', title: 'Bütçe', Icon: GaugeIcon },
+  { id: 'settings', label: 'Ayarlar', title: 'Ayarlar', Icon: GearIcon },
+]
+
+/** null: form kapalı, 'new': yeni işlem, Transaction: düzenleme */
+type FormState = null | 'new' | Transaction
+
+export default function App() {
+  const [tab, setTab] = useState<Tab>('summary')
+  const [month, setMonth] = useState<MonthKey>(() => monthOf(todayISO()))
+  const [form, setForm] = useState<FormState>(null)
+
+  const current = TABS.find((t) => t.id === tab)!
+  const tabButton = (t: (typeof TABS)[number]) => (
+    <button
+      key={t.id}
+      type="button"
+      className={`tab ${tab === t.id ? 'active' : ''}`}
+      aria-current={tab === t.id ? 'page' : undefined}
+      onClick={() => {
+        setTab(t.id)
+        window.scrollTo({ top: 0 })
+      }}
+    >
+      <t.Icon />
+      <span>{t.label}</span>
+    </button>
+  )
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+    <div className="app">
+      <header className="large-title">
+        <h1>{current.title}</h1>
+      </header>
+
+      <main className="content">
+        {tab === 'summary' && (
+          <SummaryView month={month} onMonthChange={setMonth} onOpenBudget={() => setTab('budget')} />
+        )}
+        {tab === 'transactions' && (
+          <TransactionsView month={month} onMonthChange={setMonth} onEdit={setForm} />
+        )}
+        {tab === 'budget' && <BudgetView month={month} onMonthChange={setMonth} />}
+        {tab === 'settings' && <SettingsView />}
+      </main>
+
+      <nav className="tabbar" aria-label="Sekmeler">
+        {TABS.slice(0, 2).map(tabButton)}
+        <button type="button" className="add-button" aria-label="Yeni işlem" onClick={() => setForm('new')}>
+          <PlusIcon />
         </button>
-      </section>
+        {TABS.slice(2).map(tabButton)}
+      </nav>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {form && (
+        <TransactionForm existing={form === 'new' ? undefined : form} onClose={() => setForm(null)} />
+      )}
+    </div>
   )
 }
-
-export default App
