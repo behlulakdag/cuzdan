@@ -1827,6 +1827,46 @@ select {
   color: #fff;
 }
 
+/* ---------- Kaydırarak silme ---------- */
+
+.swipe-row {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.26s ease, opacity 0.26s ease;
+}
+
+/* Satır silinirken yüksekliği kapanır, alttakiler yumuşakça yukarı kayar. */
+.swipe-row.removing {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.swipe-row > * {
+  min-height: 0;
+}
+
+.swipe-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  background: var(--red);
+}
+
+.swipe-content {
+  position: relative;
+  background: var(--surface);
+  touch-action: pan-y;
+  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

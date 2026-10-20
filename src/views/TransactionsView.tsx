@@ -1,5 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { MonthPicker } from '../components/MonthPicker'
+import { SwipeRow } from '../components/SwipeRow'
+import { useToast } from '../components/Toast'
 import { TransactionRow } from '../components/TransactionRow'
 import { dayLabel, monthOf } from '../domain/dates'
 import { formatTL } from '../domain/money'
@@ -27,7 +29,13 @@ export function TransactionsView({
   categoryFilter,
   onCategoryFilterChange,
 }: Props) {
-  const { data, categoryById } = useStore()
+  const { data, dispatch, categoryById } = useStore()
+  const toast = useToast()
+
+  const deleteTx = (tx: Transaction) => {
+    dispatch({ type: 'tx/delete', id: tx.id })
+    toast({ text: 'İşlem silindi', undo: () => dispatch({ type: 'tx/add', tx }) })
+  }
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
 
@@ -118,7 +126,9 @@ export function TransactionsView({
             </h3>
             <div className="group">
               {txs.map((t) => (
-                <TransactionRow key={t.id} tx={t} onClick={() => onEdit(t)} />
+                <SwipeRow key={t.id} onDelete={() => deleteTx(t)}>
+                  <TransactionRow tx={t} onClick={() => onEdit(t)} />
+                </SwipeRow>
               ))}
             </div>
           </section>
