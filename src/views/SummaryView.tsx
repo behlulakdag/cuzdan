@@ -5,6 +5,7 @@ import { dayLabel } from '../domain/dates'
 import { formatTL } from '../domain/money'
 import { nextDueDate } from '../domain/recurring'
 import { budgetStatuses, monthlyTrend, summarizeMonth } from '../domain/summary'
+import { percentWith, possessiveDativeSuffix, possessiveSuffix } from '../domain/turkish'
 import type { MonthKey } from '../domain/types'
 import { useStore } from '../store'
 
@@ -48,7 +49,9 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
         <strong className="balance-value">{formatTL(summary.balance)}</strong>
         {savingsRate !== null && (
           <span className="balance-rate">
-            {savingsRate >= 0 ? `Gelirinin %${savingsRate}'i cepte` : 'Gelirinden fazla harcadın'}
+            {savingsRate >= 0
+              ? `Gelirinin ${percentWith(savingsRate, possessiveSuffix)} cepte`
+              : 'Gelirinden fazla harcadın'}
           </span>
         )}
         <div className="balance-split">
@@ -74,7 +77,7 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
                   {c.name}{' '}
                   {a.state === 'over'
                     ? `bütçesini ${formatTL(a.spent - a.limit)} aştı`
-                    : `bütçesinin %${Math.round(a.ratio * 100)}'ine ulaştı`}
+                    : `bütçesinin ${percentWith(Math.round(a.ratio * 100), possessiveDativeSuffix)} ulaştı`}
                 </span>
               </div>
             )
