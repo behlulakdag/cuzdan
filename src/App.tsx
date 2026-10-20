@@ -6,7 +6,7 @@ import { needsBackupReminder } from './domain/backupReminder'
 import { monthOf, todayISO } from './domain/dates'
 import type { MonthKey, Transaction } from './domain/types'
 import { useStore } from './store'
-import { BudgetView } from './views/BudgetView'
+import { BudgetView, type BudgetSection } from './views/BudgetView'
 import { SettingsView } from './views/SettingsView'
 import { SummaryView } from './views/SummaryView'
 import { TransactionsView } from './views/TransactionsView'
@@ -28,6 +28,7 @@ export default function App() {
   const [month, setMonth] = useState<MonthKey>(() => monthOf(todayISO()))
   const [form, setForm] = useState<FormState>(null)
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
+  const [budgetSection, setBudgetSection] = useState<BudgetSection>('limits')
   const { data, lastBackup } = useStore()
   const backupDue = needsBackupReminder(lastBackup, todayISO(), data.transactions.length)
 
@@ -85,7 +86,14 @@ export default function App() {
             <SummaryView
               month={month}
               onMonthChange={setMonth}
-              onOpenBudget={() => goTo('budget')}
+              onOpenBudget={() => {
+                setBudgetSection('limits')
+                goTo('budget')
+              }}
+              onOpenGoals={() => {
+                setBudgetSection('goals')
+                goTo('budget')
+              }}
               onOpenCategory={(id) => {
                 setCategoryFilter(id)
                 setTab('transactions')
@@ -102,7 +110,14 @@ export default function App() {
               onCategoryFilterChange={setCategoryFilter}
             />
           )}
-          {tab === 'budget' && <BudgetView month={month} onMonthChange={setMonth} />}
+          {tab === 'budget' && (
+            <BudgetView
+              month={month}
+              onMonthChange={setMonth}
+              section={budgetSection}
+              onSectionChange={setBudgetSection}
+            />
+          )}
           {tab === 'settings' && <SettingsView />}
         </main>
 

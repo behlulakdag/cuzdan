@@ -29,6 +29,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 describe('Cüzdan', () => {
@@ -346,5 +347,51 @@ describe('Cüzdan', () => {
     await user.click(within(sheet).getByRole('button', { name: /^Mart 2026/ }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(screen.getByText('Mart 2026')).toBeInTheDocument()
+  })
+
+  it('birikim hedefi oluşturup para ekler, hedefe ulaşınca kutlar', async () => {
+    const user = renderApp()
+    await user.click(screen.getByRole('button', { name: /Bütçe/ }))
+    await user.click(screen.getByRole('radio', { name: 'Hedefler' }))
+    await user.click(screen.getByRole('button', { name: '+ Yeni hedef' }))
+
+    const form = screen.getByRole('dialog', { name: 'Yeni Hedef' })
+    await user.type(within(form).getByLabelText('Hedef adı'), 'Tatil')
+    await user.type(within(form).getByLabelText('Hedef tutar'), '1000')
+    await user.click(within(form).getByRole('button', { name: 'Kaydet' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /Tatil/ }))
+    const detail = screen.getByRole('dialog', { name: 'Tatil' })
+    await user.click(within(detail).getByRole('button', { name: '+ Para ekle' }))
+    const add = screen.getByRole('dialog', { name: 'Para Ekle' })
+    await user.type(within(add).getByLabelText('Tutar'), '400')
+    await user.click(within(add).getByRole('button', { name: 'Kaydet' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Para Ekle' })).not.toBeInTheDocument())
+    expect(within(detail).getByText('%40', { exact: false })).toBeInTheDocument()
+
+    // Hedeften fazlası çekilemez
+    await user.click(within(detail).getByRole('button', { name: '− Para çek' }))
+    const withdraw = screen.getByRole('dialog', { name: 'Para Çek' })
+    await user.type(within(withdraw).getByLabelText('Tutar'), '500')
+    expect(within(withdraw).getByText(/En fazla/)).toBeInTheDocument()
+    expect(within(withdraw).getByRole('button', { name: 'Kaydet' })).toBeDisabled()
+    // Dolu form Vazgeç'te onay sorar
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await user.click(within(withdraw).getByRole('button', { name: 'Vazgeç' }))
+    expect(confirmSpy).toHaveBeenCalled()
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Para Çek' })).not.toBeInTheDocument())
+
+    await user.click(within(detail).getByRole('button', { name: '+ Para ekle' }))
+    const add2 = screen.getByRole('dialog', { name: 'Para Ekle' })
+    await user.type(within(add2).getByLabelText('Tutar'), '600')
+    await user.click(within(add2).getByRole('button', { name: 'Kaydet' }))
+    expect(await screen.findByText('🎉 Tatil hedefine ulaştın!')).toBeInTheDocument()
+    expect(document.querySelector('.confetti')).toBeInTheDocument()
+
+    const stored = JSON.parse(localStorage.getItem('cuzdan:data')!).data
+    expect(stored.goals[0].contributions.map((c: { amount: number }) => c.amount)).toEqual([40000, 60000])
+    // Hedefe konan para aylık bakiyeyi etkilemez
+    expect(stored.transactions).toEqual([])
   })
 })

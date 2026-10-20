@@ -4,21 +4,10 @@ import { FALLBACK_CATEGORY } from '../domain/reducer'
 import type { Category, TxType } from '../domain/types'
 import { useStore } from '../store'
 import { ChevronRight } from './Icons'
+import { COLORS, ColorPicker, EMOJIS, EmojiPicker } from './Pickers'
 import { SegmentedControl } from './SegmentedControl'
 import { Sheet, useSheet } from './Sheet'
 import { useToast } from './Toast'
-
-const EMOJIS = [
-  '🛒', '🍔', '☕', '🍕', '🚌', '🚗', '⛽', '🚕', '💡', '💧', '📱', '🌐',
-  '🏠', '🛋️', '📺', '🎬', '🎮', '🎵', '📚', '✏️', '👕', '👟', '💄', '💇',
-  '💊', '🏥', '🏋️', '⚽', '✈️', '🏖️', '🎁', '🐶', '👶', '🚬', '🍺', '💳',
-  '💼', '🛠️', '💰', '📈', '🏦', '🎓', '💻', '📦', '❤️', '⭐', '🔧', '🧾',
-]
-
-const COLORS = [
-  '#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#00C7BE', '#30B0C7',
-  '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#A2845E', '#8E8E93',
-]
 
 export function CategoryManager({ onClose }: { onClose: () => void }) {
   const { data } = useStore()
@@ -153,36 +142,8 @@ function CategoryForm({
         </div>
         {duplicate && <p className="field-error">Bu adda bir kategori zaten var.</p>}
 
-        <div className="picker-grid emoji-grid" role="radiogroup" aria-label="Simge">
-          {EMOJIS.map((e) => (
-            <button
-              key={e}
-              type="button"
-              role="radio"
-              aria-checked={e === emoji}
-              aria-label={e}
-              className={e === emoji ? 'selected' : ''}
-              onClick={() => setEmoji(e)}
-            >
-              {e}
-            </button>
-          ))}
-        </div>
-
-        <div className="picker-grid color-grid" role="radiogroup" aria-label="Renk">
-          {COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              role="radio"
-              aria-checked={c === color}
-              aria-label={`Renk ${c}`}
-              className={c === color ? 'selected' : ''}
-              style={{ '--swatch': c } as CSSProperties}
-              onClick={() => setColor(c)}
-            />
-          ))}
-        </div>
+        <EmojiPicker emojis={EMOJIS} value={emoji} onChange={setEmoji} />
+        <ColorPicker value={color} onChange={setColor} />
 
         {existing && !isFallback && (
           <button type="button" className="danger-button" onClick={remove}>

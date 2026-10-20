@@ -1,5 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { MonthPicker } from '../components/MonthPicker'
+import { GoalsPanel } from '../components/Goals'
+import { SegmentedControl } from '../components/SegmentedControl'
 import { Sheet, useSheet } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { formatTL, kurusToInput, parseTL } from '../domain/money'
@@ -8,12 +10,16 @@ import { monthOf, todayISO } from '../domain/dates'
 import type { Category, MonthKey } from '../domain/types'
 import { useStore } from '../store'
 
+export type BudgetSection = 'limits' | 'goals'
+
 interface Props {
   month: MonthKey
   onMonthChange: (m: MonthKey) => void
+  section: BudgetSection
+  onSectionChange: (section: BudgetSection) => void
 }
 
-export function BudgetView({ month, onMonthChange }: Props) {
+export function BudgetView({ month, onMonthChange, section, onSectionChange }: Props) {
   const { data } = useStore()
   const [editing, setEditing] = useState<Category | null>(null)
   const summary = summarizeMonth(data.transactions, month)
@@ -33,8 +39,30 @@ export function BudgetView({ month, onMonthChange }: Props) {
     return (summary.expenseByCategory[b.id] ?? 0) - (summary.expenseByCategory[a.id] ?? 0)
   })
 
+  const sectionPicker = (
+    <SegmentedControl
+      label="Bölüm"
+      value={section}
+      onChange={onSectionChange}
+      options={[
+        { value: 'limits', label: 'Limitler' },
+        { value: 'goals', label: 'Hedefler' },
+      ]}
+    />
+  )
+
+  if (section === 'goals') {
+    return (
+      <>
+        {sectionPicker}
+        <GoalsPanel />
+      </>
+    )
+  }
+
   return (
     <>
+      {sectionPicker}
       <MonthPicker month={month} onChange={onMonthChange} />
 
       {totalLimit > 0 && (

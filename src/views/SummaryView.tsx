@@ -1,9 +1,11 @@
 import { useState, type CSSProperties } from 'react'
 import { AnimatedNumber } from '../components/AnimatedNumber'
 import { DonutChart, TrendChart, type DonutSlice } from '../components/charts'
+import { GoalRing } from '../components/GoalRing'
 import { MonthPicker } from '../components/MonthPicker'
 import { YearSheet } from '../components/YearSheet'
 import { dayLabel, daysBetween, monthOf, todayISO } from '../domain/dates'
+import { goalProgress } from '../domain/goals'
 import { formatTL, formatTLCompact } from '../domain/money'
 import { nextDueDate } from '../domain/recurring'
 import { budgetStatuses, monthInsights, monthlyTrend, summarizeMonth } from '../domain/summary'
@@ -21,9 +23,10 @@ interface Props {
   onMonthChange: (m: MonthKey) => void
   onOpenBudget: () => void
   onOpenCategory: (categoryId: string) => void
+  onOpenGoals: () => void
 }
 
-export function SummaryView({ month, onMonthChange, onOpenBudget, onOpenCategory }: Props) {
+export function SummaryView({ month, onMonthChange, onOpenBudget, onOpenCategory, onOpenGoals }: Props) {
   const { data, categoryById } = useStore()
   const [showYear, setShowYear] = useState(false)
   const today = todayISO()
@@ -187,6 +190,26 @@ export function SummaryView({ month, onMonthChange, onOpenBudget, onOpenCategory
         </h3>
         <TrendChart points={trend} selectedMonth={month} onSelect={onMonthChange} />
       </section>
+
+      {data.goals.length > 0 && (
+        <button type="button" className="card goals-strip" onClick={onOpenGoals}>
+          <h3 className="card-title">
+            Hedefler <span className="year-link">Tümü ›</span>
+          </h3>
+          <span className="goals-strip-list">
+            {data.goals.slice(0, 4).map((g) => {
+              const p = goalProgress(g, today)
+              return (
+                <span key={g.id} className="goals-strip-item">
+                  <GoalRing ratio={p.ratio} color={g.color} emoji={g.emoji} size={56} completed={p.completed} />
+                  <span className="goals-strip-name">{g.name}</span>
+                  <span className="goals-strip-percent">%{Math.floor(p.ratio * 100)}</span>
+                </span>
+              )
+            })}
+          </span>
+        </button>
+      )}
 
       {upcoming.length > 0 && (
         <section className="card">
