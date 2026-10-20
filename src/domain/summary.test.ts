@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { budgetStatuses, groupByDay, monthInsights, monthlyTrend, summarizeMonth } from './summary'
+import { budgetStatuses, groupByDay, monthInsights, monthlyTrend, summarizeMonth, summarizeYear } from './summary'
 import type { Transaction } from './types'
 
 const tx = (p: Partial<Transaction> & Pick<Transaction, 'amount' | 'date'>): Transaction => ({
@@ -91,5 +91,25 @@ describe('monthInsights', () => {
     }
     // 1.000 TL değişken gider / 20 gün * 31 gün = 1.550 TL + 12.000 kira + 230 Netflix
     expect(monthInsights(list, '2026-10', '2026-10-20', [netflix]).projectedExpense).toBe(1378000)
+  })
+})
+
+describe('summarizeYear', () => {
+  it('yılın toplamlarını, en çok harcanan kategorileri ve en yüksek/düşük ayı verir', () => {
+    const y = summarizeYear(data, 2026)
+    expect(y.months).toHaveLength(12)
+    expect(y.income).toBe(3000000)
+    expect(y.expense).toBe(214999)
+    expect(y.topCategories).toEqual([['market', 174999], ['yemek', 40000]])
+    expect(y.highestExpenseMonth?.month).toBe('2026-10')
+    expect(y.lowestExpenseMonth?.month).toBe('2026-09')
+    // 2 harcamalı ay: 214.999 / 2
+    expect(y.averageMonthlyExpense).toBe(107500)
+  })
+
+  it('başka yılların işlemlerini saymaz', () => {
+    const y = summarizeYear(data, 2025)
+    expect(y.expense).toBe(0)
+    expect(y.highestExpenseMonth).toBeNull()
   })
 })

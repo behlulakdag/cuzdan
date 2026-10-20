@@ -169,3 +169,40 @@ export function dailyAllowance(remaining: Kurus, today: ISODate): Kurus {
   const daysLeft = daysInMonth(monthOf(today)) - Number(today.slice(8, 10)) + 1
   return remaining > 0 ? Math.floor(remaining / daysLeft) : 0
 }
+
+export interface YearSummary {
+  months: MonthTrendPoint[]
+  income: Kurus
+  expense: Kurus
+  balance: Kurus
+  /** En çok harcanandan aza, yalnızca giderler */
+  topCategories: [string, Kurus][]
+  /** Harcama olan aylar üzerinden ortalama; boş aylar ortalamayı düşürmesin */
+  averageMonthlyExpense: Kurus
+  highestExpenseMonth: MonthTrendPoint | null
+  lowestExpenseMonth: MonthTrendPoint | null
+}
+
+export function summarizeYear(transactions: Transaction[], year: number): YearSummary {
+  const months = monthlyTrend(transactions, `${year}-12`, 12)
+  const byCategory: Record<string, Kurus> = {}
+  for (const t of transactions) {
+    if (t.type !== 'expense' || !t.date.startsWith(`${year}-`)) continue
+    byCategory[t.categoryId] = (byCategory[t.categoryId] ?? 0) + t.amount
+  }
+  const income = months.reduce((s, m) => s + m.income, 0)
+  const expense = months.reduce((s, m) => s + m.expense, 0)
+  const activeMonths = months.filter((m) => m.expense > 0)
+  const byExpense = [...activeMonths].sort((a, b) => b.expense - a.expense)
+  return {
+    months,
+    income,
+    expense,
+    balance: income - expense,
+    topCategories: Object.entries(byCategory).sort((a, b) => b[1] - a[1]),
+    averageMonthlyExpense: activeMonths.length ? Math.round(expense / activeMonths.length) : 0,
+    highestExpenseMonth: byExpense[0] ?? null,
+    // Tek aylık veride en yüksek ile en düşük aynı ay olur; anlamsız karşılaştırma gösterilmez.
+    lowestExpenseMonth: byExpense.length > 1 ? byExpense[byExpense.length - 1] : null,
+  }
+}

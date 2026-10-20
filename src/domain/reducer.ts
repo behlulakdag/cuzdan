@@ -1,5 +1,5 @@
 import { materializeRecurring } from './recurring'
-import type { AppData, Category, ISODate, Kurus, RecurringRule, Transaction } from './types'
+import type { AppData, Category, Goal, GoalContribution, ISODate, Kurus, RecurringRule, Transaction } from './types'
 
 export type Action =
   | { type: 'tx/add'; tx: Transaction }
@@ -14,6 +14,11 @@ export type Action =
   | { type: 'category/add'; category: Category }
   | { type: 'category/update'; category: Category }
   | { type: 'category/delete'; id: string }
+  | { type: 'goal/add'; goal: Goal }
+  | { type: 'goal/update'; goal: Goal }
+  | { type: 'goal/delete'; id: string }
+  | { type: 'goal/contribute'; goalId: string; contribution: GoalContribution }
+  | { type: 'goal/uncontribute'; goalId: string; contributionId: string }
 
 /** Silinemeyen, silinen kategorilerin kayıtlarının taşındığı kategoriler */
 export const FALLBACK_CATEGORY: Record<Category['type'], string> = {
@@ -71,6 +76,34 @@ export function reducer(state: AppData, action: Action): AppData {
         categories: state.categories.map((c) =>
           // Tür değişirse eski işlemler yanlış tarafa geçerdi; tür sabit tutulur.
           c.id === action.category.id ? { ...action.category, type: c.type } : c,
+        ),
+      }
+    case 'goal/add':
+      return { ...state, goals: [...state.goals, action.goal] }
+    case 'goal/update':
+      return {
+        ...state,
+        // Katkı geçmişi formdan gelmez; düzenleme sırasında kaybolmasın.
+        goals: state.goals.map((g) =>
+          g.id === action.goal.id ? { ...action.goal, contributions: g.contributions } : g,
+        ),
+      }
+    case 'goal/delete':
+      return { ...state, goals: state.goals.filter((g) => g.id !== action.id) }
+    case 'goal/contribute':
+      return {
+        ...state,
+        goals: state.goals.map((g) =>
+          g.id === action.goalId ? { ...g, contributions: [...g.contributions, action.contribution] } : g,
+        ),
+      }
+    case 'goal/uncontribute':
+      return {
+        ...state,
+        goals: state.goals.map((g) =>
+          g.id === action.goalId
+            ? { ...g, contributions: g.contributions.filter((c) => c.id !== action.contributionId) }
+            : g,
         ),
       }
     case 'category/delete': {

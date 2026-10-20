@@ -42,6 +42,28 @@ export interface RecurringRule {
   generatedThrough?: MonthKey
 }
 
+export interface GoalContribution {
+  id: string
+  date: ISODate
+  /** Eksi değer hedeften para çekmektir. */
+  amount: Kurus
+}
+
+/**
+ * Birikim hedefi. Hedefe konan para bir harcama değil, kenara ayrılan paradır;
+ * bu yüzden aylık gelir/gider bakiyesini etkilemez.
+ */
+export interface Goal {
+  id: string
+  name: string
+  emoji: string
+  color: string
+  target: Kurus
+  /** İsteğe bağlı son tarih; aylık ne kadar biriktirilmesi gerektiğini hesaplamak için */
+  deadline?: ISODate
+  contributions: GoalContribution[]
+}
+
 export interface AppData {
   version: 1
   categories: Category[]
@@ -49,4 +71,5 @@ export interface AppData {
   /** categoryId -> aylık limit */
   budgets: Record<string, Kurus>
   recurring: RecurringRule[]
+  goals: Goal[]
 }

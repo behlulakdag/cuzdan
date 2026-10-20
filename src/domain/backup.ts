@@ -1,4 +1,4 @@
-import type { AppData, Category, RecurringRule, Transaction } from './types'
+import type { AppData, Category, Goal, RecurringRule, Transaction } from './types'
 
 export function serializeBackup(data: AppData): string {
   return JSON.stringify({ app: 'cuzdan', exportedAt: new Date().toISOString(), data }, null, 2)
@@ -33,6 +33,17 @@ function isRule(v: unknown): v is RecurringRule {
   )
 }
 
+function isGoal(v: unknown): v is Goal {
+  return (
+    isObj(v) && isStr(v.id) && isStr(v.name) && isStr(v.emoji) && isStr(v.color) &&
+    isAmount(v.target) && (v.deadline === undefined || isDate(v.deadline)) &&
+    Array.isArray(v.contributions) &&
+    v.contributions.every(
+      (c) => isObj(c) && isStr(c.id) && isDate(c.date) && Number.isInteger(c.amount) && c.amount !== 0,
+    )
+  )
+}
+
 /** Yedek dosyasını doğrular; bozuk bir dosya mevcut verinin üzerine yazılmasın diye her alan kontrol edilir. */
 export function parseBackup(text: string): AppData {
   let parsed: unknown
@@ -58,11 +69,17 @@ export function parseBackup(text: string): AppData {
   if (!isObj(d.budgets) || !Object.values(d.budgets).every(isAmount)) {
     throw new BackupError('Bütçeler bozuk.')
   }
+  // Hedefler sonradan eklendi; eski yedeklerde bu alan yok.
+  const goals = d.goals ?? []
+  if (!Array.isArray(goals) || !goals.every(isGoal)) {
+    throw new BackupError('Hedefler bozuk.')
+  }
   return {
     version: 1,
     categories: d.categories,
     transactions: d.transactions,
     recurring: d.recurring,
     budgets: d.budgets as Record<string, number>,
+    goals,
   }
 }

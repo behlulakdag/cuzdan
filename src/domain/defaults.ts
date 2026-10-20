@@ -25,6 +25,7 @@ export function emptyData(): AppData {
     transactions: [],
     budgets: {},
     recurring: [],
+    goals: [],
   }
 }
 
