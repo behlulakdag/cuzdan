@@ -177,13 +177,13 @@ export interface YearSummary {
   balance: Kurus
   /** En çok harcanandan aza, yalnızca giderler */
   topCategories: [string, Kurus][]
-  /** Harcama olan aylar üzerinden ortalama; boş aylar ortalamayı düşürmesin */
+  /** Harcama olan tamamlanmış aylar üzerinden ortalama; boş ve yarım aylar ortalamayı düşürmesin */
   averageMonthlyExpense: Kurus
   highestExpenseMonth: MonthTrendPoint | null
   lowestExpenseMonth: MonthTrendPoint | null
 }
 
-export function summarizeYear(transactions: Transaction[], year: number): YearSummary {
+export function summarizeYear(transactions: Transaction[], year: number, today: ISODate): YearSummary {
   const months = monthlyTrend(transactions, `${year}-12`, 12)
   const byCategory: Record<string, Kurus> = {}
   for (const t of transactions) {
@@ -193,14 +193,20 @@ export function summarizeYear(transactions: Transaction[], year: number): YearSu
   const income = months.reduce((s, m) => s + m.income, 0)
   const expense = months.reduce((s, m) => s + m.expense, 0)
   const activeMonths = months.filter((m) => m.expense > 0)
-  const byExpense = [...activeMonths].sort((a, b) => b.expense - a.expense)
+  // Devam eden ay yarım olduğu için hep "en tasarruflu ay" çıkıyor ve ortalamayı düşürüyordu;
+  // tamamlanmış ay varsa karşılaştırmalar yalnızca onlarla yapılır.
+  const completedMonths = activeMonths.filter((m) => m.month < monthOf(today))
+  const compared = completedMonths.length > 0 ? completedMonths : activeMonths
+  const byExpense = [...compared].sort((a, b) => b.expense - a.expense)
   return {
     months,
     income,
     expense,
     balance: income - expense,
     topCategories: Object.entries(byCategory).sort((a, b) => b[1] - a[1]),
-    averageMonthlyExpense: activeMonths.length ? Math.round(expense / activeMonths.length) : 0,
+    averageMonthlyExpense: compared.length
+      ? Math.round(compared.reduce((sum, m) => sum + m.expense, 0) / compared.length)
+      : 0,
     highestExpenseMonth: byExpense[0] ?? null,
     // Tek aylık veride en yüksek ile en düşük aynı ay olur; anlamsız karşılaştırma gösterilmez.
     lowestExpenseMonth: byExpense.length > 1 ? byExpense[byExpense.length - 1] : null,

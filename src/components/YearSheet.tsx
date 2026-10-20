@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { monthLabel, monthOf, todayISO } from '../domain/dates'
-import { formatTL } from '../domain/money'
+import { formatTL, formatTLCompact } from '../domain/money'
 import { summarizeYear } from '../domain/summary'
 import { percentWith, possessiveSuffix } from '../domain/turkish'
 import type { MonthKey } from '../domain/types'
@@ -23,7 +23,7 @@ export function YearSheet({ initialYear, onClose, onOpenMonth }: Props) {
   const sheet = useSheet(onClose)
   const [year, setYear] = useState(initialYear)
   const currentYear = Number(todayISO().slice(0, 4))
-  const y = summarizeYear(data.transactions, year)
+  const y = summarizeYear(data.transactions, year, todayISO())
   const savingsRate = y.income > 0 ? Math.round((y.balance / y.income) * 100) : null
   const topCategories = y.topCategories.slice(0, TOP_CATEGORY_COUNT)
   const topMax = topCategories[0]?.[1] ?? 1
@@ -92,20 +92,20 @@ export function YearSheet({ initialYear, onClose, onOpenMonth }: Props) {
             <section className="stats" aria-label="Yılın göstergeleri">
               <div className="stat">
                 <span className="stat-label">Aylık ort. gider</span>
-                <strong>{formatTL(y.averageMonthlyExpense)}</strong>
+                <strong>{formatTLCompact(y.averageMonthlyExpense)}</strong>
               </div>
               {y.highestExpenseMonth && (
                 <div className="stat up">
                   <span className="stat-label">En pahalı ay</span>
                   <strong>{monthLabel(y.highestExpenseMonth.month).split(' ')[0]}</strong>
-                  <span className="stat-sub">{formatTL(y.highestExpenseMonth.expense)}</span>
+                  <span className="stat-sub">{formatTLCompact(y.highestExpenseMonth.expense)}</span>
                 </div>
               )}
               {y.lowestExpenseMonth && (
                 <div className="stat down">
                   <span className="stat-label">En tasarruflu ay</span>
                   <strong>{monthLabel(y.lowestExpenseMonth.month).split(' ')[0]}</strong>
-                  <span className="stat-sub">{formatTL(y.lowestExpenseMonth.expense)}</span>
+                  <span className="stat-sub">{formatTLCompact(y.lowestExpenseMonth.expense)}</span>
                 </div>
               )}
             </section>

@@ -96,7 +96,7 @@ describe('monthInsights', () => {
 
 describe('summarizeYear', () => {
   it('yılın toplamlarını, en çok harcanan kategorileri ve en yüksek/düşük ayı verir', () => {
-    const y = summarizeYear(data, 2026)
+    const y = summarizeYear(data, 2026, '2026-12-31')
     expect(y.months).toHaveLength(12)
     expect(y.income).toBe(3000000)
     expect(y.expense).toBe(214999)
@@ -108,8 +108,26 @@ describe('summarizeYear', () => {
   })
 
   it('başka yılların işlemlerini saymaz', () => {
-    const y = summarizeYear(data, 2025)
+    const y = summarizeYear(data, 2025, '2026-10-20')
     expect(y.expense).toBe(0)
     expect(y.highestExpenseMonth).toBeNull()
+  })
+
+  it('devam eden ayı en tasarruflu ay saymaz ve ortalamaya katmaz', () => {
+    const list = [
+      tx({ amount: 300000, date: '2026-08-10' }),
+      tx({ amount: 200000, date: '2026-09-10' }),
+      tx({ amount: 5000, date: '2026-10-02' }),
+    ]
+    const y = summarizeYear(list, 2026, '2026-10-05')
+    expect(y.lowestExpenseMonth?.month).toBe('2026-09')
+    expect(y.highestExpenseMonth?.month).toBe('2026-08')
+    expect(y.averageMonthlyExpense).toBe(250000)
+  })
+
+  it('tamamlanmış ay yoksa devam eden ayı kullanır', () => {
+    const y = summarizeYear([tx({ amount: 5000, date: '2026-10-02' })], 2026, '2026-10-05')
+    expect(y.highestExpenseMonth?.month).toBe('2026-10')
+    expect(y.averageMonthlyExpense).toBe(5000)
   })
 })
