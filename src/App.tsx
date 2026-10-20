@@ -25,6 +25,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('summary')
   const [month, setMonth] = useState<MonthKey>(() => monthOf(todayISO()))
   const [form, setForm] = useState<FormState>(null)
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
 
   // Uygulama günlerce açık kalabilir; ay değiştiğinde "bu ay"a bakan kullanıcıyı yeni aya taşı.
   const lastCurrentMonth = useRef(month)
@@ -44,6 +45,12 @@ export default function App() {
     }
   }, [])
 
+  const goTo = (next: Tab) => {
+    if (next !== 'transactions') setCategoryFilter(null)
+    setTab(next)
+    window.scrollTo({ top: 0 })
+  }
+
   const current = TABS.find((t) => t.id === tab)!
   const tabButton = (t: (typeof TABS)[number]) => (
     <button
@@ -51,10 +58,7 @@ export default function App() {
       type="button"
       className={`tab ${tab === t.id ? 'active' : ''}`}
       aria-current={tab === t.id ? 'page' : undefined}
-      onClick={() => {
-        setTab(t.id)
-        window.scrollTo({ top: 0 })
-      }}
+      onClick={() => goTo(t.id)}
     >
       <t.Icon />
       <span>{t.label}</span>
@@ -63,34 +67,55 @@ export default function App() {
 
   return (
     <ToastProvider>
-    <div className="app">
-      <header className="large-title">
-        <h1>{current.title}</h1>
-      </header>
+      <div className="app">
+        <header className="large-title">
+          <h1 key={tab}>{current.title}</h1>
+        </header>
 
-      <main className="content">
-        {tab === 'summary' && (
-          <SummaryView month={month} onMonthChange={setMonth} onOpenBudget={() => setTab('budget')} />
+        {/* key ile her sekme değişiminde içerik giriş animasyonunu yeniden oynatır. */}
+        <main className="content" key={tab}>
+          {tab === 'summary' && (
+            <SummaryView
+              month={month}
+              onMonthChange={setMonth}
+              onOpenBudget={() => goTo('budget')}
+              onOpenCategory={(id) => {
+                setCategoryFilter(id)
+                setTab('transactions')
+                window.scrollTo({ top: 0 })
+              }}
+            />
+          )}
+          {tab === 'transactions' && (
+            <TransactionsView
+              month={month}
+              onMonthChange={setMonth}
+              onEdit={setForm}
+              categoryFilter={categoryFilter}
+              onCategoryFilterChange={setCategoryFilter}
+            />
+          )}
+          {tab === 'budget' && <BudgetView month={month} onMonthChange={setMonth} />}
+          {tab === 'settings' && <SettingsView />}
+        </main>
+
+        <nav className="tabbar" aria-label="Sekmeler">
+          {TABS.slice(0, 2).map(tabButton)}
+          <button
+            type="button"
+            className={`add-button ${form ? 'open' : ''}`}
+            aria-label="Yeni işlem"
+            onClick={() => setForm('new')}
+          >
+            <PlusIcon />
+          </button>
+          {TABS.slice(2).map(tabButton)}
+        </nav>
+
+        {form && (
+          <TransactionForm existing={form === 'new' ? undefined : form} onClose={() => setForm(null)} />
         )}
-        {tab === 'transactions' && (
-          <TransactionsView month={month} onMonthChange={setMonth} onEdit={setForm} />
-        )}
-        {tab === 'budget' && <BudgetView month={month} onMonthChange={setMonth} />}
-        {tab === 'settings' && <SettingsView />}
-      </main>
-
-      <nav className="tabbar" aria-label="Sekmeler">
-        {TABS.slice(0, 2).map(tabButton)}
-        <button type="button" className="add-button" aria-label="Yeni işlem" onClick={() => setForm('new')}>
-          <PlusIcon />
-        </button>
-        {TABS.slice(2).map(tabButton)}
-      </nav>
-
-      {form && (
-        <TransactionForm existing={form === 'new' ? undefined : form} onClose={() => setForm(null)} />
-      )}
-    </div>
+      </div>
     </ToastProvider>
   )
 }

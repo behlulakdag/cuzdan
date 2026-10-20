@@ -1,10 +1,11 @@
 import type { CSSProperties } from 'react'
+import { AnimatedNumber } from '../components/AnimatedNumber'
 import { DonutChart, TrendChart, type DonutSlice } from '../components/charts'
 import { MonthPicker } from '../components/MonthPicker'
-import { dayLabel, monthOf, todayISO } from '../domain/dates'
-import { formatTL } from '../domain/money'
+import { dayLabel, daysBetween, monthOf, todayISO } from '../domain/dates'
+import { formatTL, formatTLCompact } from '../domain/money'
 import { nextDueDate } from '../domain/recurring'
-import { budgetStatuses, monthlyTrend, summarizeMonth } from '../domain/summary'
+import { budgetStatuses, monthInsights, monthlyTrend, summarizeMonth } from '../domain/summary'
 import { percentWith, possessiveDativeSuffix, possessiveSuffix } from '../domain/turkish'
 import type { MonthKey } from '../domain/types'
 import { useStore } from '../store'
@@ -12,17 +13,22 @@ import { useStore } from '../store'
 /** Donut'ta en büyük bu kadar kategori ayrı gösterilir, gerisi "Diğer"de toplanır. */
 const MAX_DONUT_SLICES = 5
 const UPCOMING_LIMIT = 4
+const REST_SLICE_ID = 'rest'
 
 interface Props {
   month: MonthKey
   onMonthChange: (m: MonthKey) => void
   onOpenBudget: () => void
+  onOpenCategory: (categoryId: string) => void
 }
 
-export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
+export function SummaryView({ month, onMonthChange, onOpenBudget, onOpenCategory }: Props) {
   const { data, categoryById } = useStore()
+  const today = todayISO()
+  const currentMonth = monthOf(today)
   const summary = summarizeMonth(data.transactions, month)
   const trend = monthlyTrend(data.transactions, month, 6)
+  const insights = monthInsights(data.transactions, month, today, data.recurring)
   const alerts = budgetStatuses(data.budgets, summary).filter((b) => b.state !== 'ok')
 
   const ranked = Object.entries(summary.expenseByCategory).sort((a, b) => b[1] - a[1])
@@ -31,7 +37,7 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
     return { id, label: `${c.emoji} ${c.name}`, value, color: c.color }
   })
   const restTotal = ranked.slice(MAX_DONUT_SLICES).reduce((sum, [, v]) => sum + v, 0)
-  if (restTotal > 0) slices.push({ id: 'rest', label: 'Diğerleri', value: restTotal, color: '#8E8E93' })
+  if (restTotal > 0) slices.push({ id: REST_SLICE_ID, label: 'Diğerleri', value: restTotal, color: '#8E8E93' })
 
   const upcoming = [...data.recurring]
     .map((r) => ({ rule: r, due: nextDueDate(r) }))
@@ -39,16 +45,18 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
     .slice(0, UPCOMING_LIMIT)
 
   const savingsRate = summary.income > 0 ? Math.round((summary.balance / summary.income) * 100) : null
+  const balanceLabel =
+    month === currentMonth ? 'Bu ay kalan' : month < currentMonth ? 'Ay sonu kalan' : 'Planlanan'
+
+  const openSlice = (id: string) => id !== REST_SLICE_ID && onOpenCategory(id)
 
   return (
     <>
       <MonthPicker month={month} onChange={onMonthChange} />
 
       <section className={`balance-card ${summary.balance < 0 ? 'negative' : ''}`}>
-        <span className="balance-label">
-          {month === monthOf(todayISO()) ? 'Bu ay kalan' : month < monthOf(todayISO()) ? 'Ay sonu kalan' : 'Planlanan'}
-        </span>
-        <strong className="balance-value">{formatTL(summary.balance)}</strong>
+        <span className="balance-label">{balanceLabel}</span>
+        <AnimatedNumber className="balance-value" value={summary.balance} format={formatTL} />
         {savingsRate !== null && (
           <span className="balance-rate">
             {savingsRate >= 0
@@ -58,12 +66,16 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
         )}
         <div className="balance-split">
           <div>
-            <span className="dot income" /> Gelir
-            <b>{formatTL(summary.income)}</b>
+            <span className="balance-split-label">
+              <span className="dot income" /> Gelir
+            </span>
+            <AnimatedNumber value={summary.income} format={formatTL} />
           </div>
           <div>
-            <span className="dot expense" /> Gider
-            <b>{formatTL(summary.expense)}</b>
+            <span className="balance-split-label">
+              <span className="dot expense" /> Gider
+            </span>
+            <AnimatedNumber value={summary.expense} format={formatTL} />
           </div>
         </div>
       </section>
@@ -79,7 +91,8 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
                   {c.name}{' '}
                   {a.state === 'over'
                     ? `bütçesini ${formatTL(a.spent - a.limit)} aştı`
-                    : `bütçesinin ${percentWith(Math.round(a.ratio * 100), possessiveDativeSuffix)} ulaştı`}
+                    : // Aşağı yuvarlanır: %99,6 "%100" görünüp aşılmış sanılmasın.
+                      `bütçesinin ${percentWith(Math.floor(a.ratio * 100), possessiveDativeSuffix)} ulaştı`}
                 </span>
               </div>
             )
@@ -87,21 +100,72 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
         </button>
       )}
 
+      {summary.expense > 0 && (
+        <section className="stats" aria-label="Bu ayın göstergeleri">
+          {insights.expenseChange !== null && (
+            <div className={`stat ${insights.expenseChange > 0 ? 'up' : 'down'}`}>
+              <span className="stat-label">Geçen aya göre</span>
+              <strong>
+                <span className="stat-arrow" aria-hidden>
+                  {insights.expenseChange > 0 ? '↑' : '↓'}
+                </span>
+                %{Math.abs(Math.round(insights.expenseChange * 100))}
+              </strong>
+              <span className="stat-sub">
+                {insights.expenseChange > 0 ? 'daha fazla harcama' : 'daha az harcama'}
+              </span>
+            </div>
+          )}
+          {insights.daysElapsed > 0 && (
+            <div className="stat">
+              <span className="stat-label">Günlük ortalama</span>
+              <strong>{formatTLCompact(insights.dailyAverage)}</strong>
+              <span className="stat-sub">{insights.daysElapsed} günde</span>
+            </div>
+          )}
+          {insights.projectedExpense !== null && (
+            <div className="stat">
+              <span className="stat-label">Ay sonu tahmini</span>
+              <strong>{formatTLCompact(insights.projectedExpense)}</strong>
+              <span className="stat-sub">bu hızla gider</span>
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="card">
         <h3 className="card-title">Harcama Dağılımı</h3>
         {slices.length === 0 ? (
-          <p className="empty">Bu ay henüz harcama yok. Aşağıdaki + ile ilk işlemini ekle.</p>
+          <div className="empty-state">
+            <span className="empty-illustration" aria-hidden>
+              <span>🧾</span>
+              <span>💸</span>
+              <span>🪙</span>
+            </span>
+            <p className="empty">
+              {month === currentMonth
+                ? 'Bu ay henüz harcama yok. Aşağıdaki + ile ilk işlemini ekle.'
+                : 'Bu ay harcama yok.'}
+            </p>
+          </div>
         ) : (
           <div className="donut-wrap">
-            <DonutChart slices={slices} total={summary.expense} />
+            <DonutChart slices={slices} total={summary.expense} onSelect={openSlice} />
             <ul className="legend">
-              {slices.map((s) => (
-                <li key={s.id} style={{ '--cat': s.color } as CSSProperties}>
-                  <span className="legend-label">{s.label}</span>
-                  <span className="legend-value">
-                    {formatTL(s.value)}
-                    <small>%{Math.round((s.value / summary.expense) * 100)}</small>
-                  </span>
+              {slices.map((s, i) => (
+                <li key={s.id} style={{ '--cat': s.color, '--i': i } as CSSProperties}>
+                  <button
+                    type="button"
+                    onClick={() => openSlice(s.id)}
+                    disabled={s.id === REST_SLICE_ID}
+                    aria-label={`${s.label} işlemlerini göster`}
+                  >
+                    <span className="legend-label">{s.label}</span>
+                    <span className="legend-value">
+                      {formatTL(s.value)}
+                      <small>%{Math.round((s.value / summary.expense) * 100)}</small>
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -116,7 +180,7 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
             <span className="dot income" /> Gelir <span className="dot expense" /> Gider
           </span>
         </h3>
-        <TrendChart points={trend} />
+        <TrendChart points={trend} selectedMonth={month} onSelect={onMonthChange} />
       </section>
 
       {upcoming.length > 0 && (
@@ -125,6 +189,7 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
           <ul className="upcoming">
             {upcoming.map(({ rule, due }) => {
               const c = categoryById(rule.categoryId)
+              const daysLeft = daysBetween(today, due)
               return (
                 <li key={rule.id}>
                   <span className="tx-icon small" style={{ '--cat': c.color } as CSSProperties}>
@@ -132,9 +197,14 @@ export function SummaryView({ month, onMonthChange, onOpenBudget }: Props) {
                   </span>
                   <span className="upcoming-text">
                     {rule.note || c.name}
-                    <small>{dayLabel(due)}</small>
+                    <small>{dayLabel(due, today)}</small>
                   </span>
-                  <span className={`tx-amount ${rule.type}`}>{formatTL(rule.amount)}</span>
+                  <span className="upcoming-right">
+                    <span className={`tx-amount ${rule.type}`}>{formatTL(rule.amount)}</span>
+                    {daysLeft > 1 && (
+                      <span className={`days-badge ${daysLeft <= 3 ? 'soon' : ''}`}>{daysLeft} gün</span>
+                    )}
+                  </span>
                 </li>
               )
             })}

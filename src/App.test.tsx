@@ -247,4 +247,33 @@ describe('Cüzdan', () => {
     expect(within(form).getByText(/zaten var/)).toBeInTheDocument()
     expect(within(form).getByRole('button', { name: 'Kaydet' })).toBeDisabled()
   })
+
+  it('özette bir kategoriye dokununca o kategorinin işlemleri açılır', async () => {
+    const data = emptyData()
+    data.transactions.push(
+      { id: 'a', type: 'expense', amount: 5000, categoryId: 'yemek', date: '2026-10-19', note: 'Kahve' },
+      { id: 'b', type: 'expense', amount: 7000, categoryId: 'market', date: '2026-10-18', note: 'Migros' },
+    )
+    const user = renderApp(data)
+    await user.click(screen.getByRole('button', { name: /Yemek işlemlerini göster/ }))
+    expect(screen.getByRole('heading', { name: 'İşlemler' })).toBeInTheDocument()
+    expect(screen.getByText('Kahve')).toBeInTheDocument()
+    expect(screen.queryByText('Migros')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Yemek filtresini kaldır/ }))
+    expect(screen.getByText('Migros')).toBeInTheDocument()
+  })
+
+  it('geçen aya göre değişimi ve günlük ortalamayı gösterir', () => {
+    const data = emptyData()
+    data.transactions.push(
+      { id: 'a', type: 'expense', amount: 100000, categoryId: 'yemek', date: '2026-09-10', note: '' },
+      { id: 'b', type: 'expense', amount: 80000, categoryId: 'yemek', date: '2026-10-10', note: '' },
+    )
+    renderApp(data)
+    const stats = screen.getByRole('region', { name: 'Bu ayın göstergeleri' })
+    expect(within(stats).getByText('%20')).toBeInTheDocument()
+    expect(within(stats).getByText('daha az harcama')).toBeInTheDocument()
+    expect(normalizeSpaces(within(stats).getByText('20 günde').parentElement!.textContent)).toContain('₺40')
+  })
 })

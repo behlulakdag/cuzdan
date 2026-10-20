@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { MonthPicker } from '../components/MonthPicker'
 import { TransactionRow } from '../components/TransactionRow'
 import { dayLabel, monthOf } from '../domain/dates'
@@ -13,12 +13,20 @@ interface Props {
   month: MonthKey
   onMonthChange: (m: MonthKey) => void
   onEdit: (tx: Transaction) => void
+  categoryFilter: string | null
+  onCategoryFilterChange: (id: string | null) => void
 }
 
 /** Türkçe "İ/ı" harflerinde toLowerCase yanlış eşleştiriyordu; tr-TR yerel ayarıyla küçültülür. */
 const normalize = (s: string) => s.toLocaleLowerCase('tr-TR')
 
-export function TransactionsView({ month, onMonthChange, onEdit }: Props) {
+export function TransactionsView({
+  month,
+  onMonthChange,
+  onEdit,
+  categoryFilter,
+  onCategoryFilterChange,
+}: Props) {
   const { data, categoryById } = useStore()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
@@ -27,10 +35,13 @@ export function TransactionsView({ month, onMonthChange, onEdit }: Props) {
   const visible = data.transactions.filter((t) => {
     if (monthOf(t.date) !== month) return false
     if (filter !== 'all' && t.type !== filter) return false
+    if (categoryFilter && t.categoryId !== categoryFilter) return false
     if (!q) return true
     return normalize(`${t.note} ${categoryById(t.categoryId).name}`).includes(q)
   })
   const groups = groupByDay(visible)
+  const totalIncome = visible.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
+  const totalExpense = visible.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
 
   return (
     <>
@@ -63,17 +74,44 @@ export function TransactionsView({ month, onMonthChange, onEdit }: Props) {
               {label}
             </button>
           ))}
+          {categoryFilter && (
+            <button
+              type="button"
+              className="chip active category-filter"
+              style={{ '--cat': categoryById(categoryFilter).color } as CSSProperties}
+              onClick={() => onCategoryFilterChange(null)}
+              aria-label={`${categoryById(categoryFilter).name} filtresini kaldır`}
+            >
+              {categoryById(categoryFilter).emoji} {categoryById(categoryFilter).name}
+              <span aria-hidden> ✕</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {groups.length === 0 && (
-        <p className="empty card">{q || filter !== 'all' ? 'Eşleşen işlem yok.' : 'Bu ay işlem yok.'}</p>
+      {visible.length > 0 && (
+        <div className="list-total">
+          <span>{visible.length} işlem</span>
+          <span>
+            {totalIncome > 0 && <span className="income">+{formatTL(totalIncome)}</span>}
+            {totalExpense > 0 && <span>−{formatTL(totalExpense)}</span>}
+          </span>
+        </div>
       )}
 
-      {groups.map(([date, txs]) => {
+      {groups.length === 0 && (
+        <p className="empty card">{q || filter !== 'all' || categoryFilter ? 'Eşleşen işlem yok.' : 'Bu ay işlem yok.'}</p>
+      )}
+
+      {groups.map(([date, txs], groupIndex) => {
         const net = txs.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0)
         return (
-          <section key={date} className="day-group">
+          <section
+            key={date}
+            className="day-group"
+            // Sadece ilk birkaç grup kademeli girer; uzun listede bekleme olmasın.
+            style={{ '--i': Math.min(groupIndex, 8) } as CSSProperties}
+          >
             <h3 className="day-header">
               <span>{dayLabel(date)}</span>
               <span className={net >= 0 ? 'income' : 'expense'}>{formatTL(net)}</span>
