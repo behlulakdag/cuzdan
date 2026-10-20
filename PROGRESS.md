@@ -1,5 +1,17 @@
 # İlerleme
 
+## 2026-10-20: Kaydırarak silme, yıllık görünüm, birikim hedefleri
+
+- Düzenli ödemede hızlı seçim çipleri (Claude en başta). Tutar bilerek boş: fiyat plana/kura göre değişir.
+- İşlem listesinde sola kaydırıp silme (yön kilidi, tek satır açık, geri alınabilir).
+- Yıllık görünüm. Hata: devam eden ay "en tasarruflu ay" çıkıyordu → tamamlanmış aylarla karşılaştırma.
+- Birikim hedefleri (`AppData.goals`). Karar: hedefe konan para gelir/gider bakiyesini etkilemez.
+  Eski yedekler (goals alanı olmayan) sorunsuz açılıyor.
+- Banka bağlantısı konuşuldu: canlı bağlantı açık bankacılık lisansı ve sunucu gerektirdiği için yok.
+  Kullanıcı ekstre içe aktarmayı şimdilik istemedi.
+- 127 test.
+
+
 ## 2026-10-20: Cila, mantık düzeltmeleri ve yeni özellikler
 
 Yayında: https://behlulakdag.github.io/cuzdan/ (main'e her push'ta testler + otomatik yayın)
@@ -53,6 +65,6 @@ Yayında: https://behlulakdag.github.io/cuzdan/ (main'e her push'ta testler + ot
 - Tarayıcıda `Intl` kuruşsuz biçimde 2 haneyi koruyordu → `minimumFractionDigits: 0`.
 
 **Sonraki fikirler**
-- Yıllık görünüm
-- Sola kaydırarak silme
+- Ekstre (CSV/Excel) içe aktarma ve otomatik kategori (kullanıcı şimdilik istemedi)
+- PIN kilidi
 - Gerçek iPhone'da test

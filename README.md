@@ -13,7 +13,10 @@ Veriler yalnızca telefonda durur; sunucu, hesap veya abonelik yok.
 - Düzenli ödemeler (kira, abonelik, maaş): her ay otomatik eklenir, açılmadığın ayları da tamamlar
 - Kendi kategorilerin (ad, simge, renk)
 - Not önerileri: kategoride sık yazdığın notlar tek dokunuşla, son tutarıyla gelir
-- Silmeyi geri alma, kayıt bildirimleri
+- Silmeyi geri alma, sola kaydırıp silme, kayıt bildirimleri
+- Birikim hedefleri: ilerleme halkası, para ekle/çek, son tarihe göre aylık gereken tutar
+- Yıllık görünüm: 12 ay, en pahalı/tasarruflu ay, en çok harcanan kategoriler
+- Düzenli ödemede hızlı seçim (Claude, Netflix, Spotify, kira, maaş...)
 - Arama, gelir/gider ve kategori filtresi
 - Yedek alma (Dosyalar'a kaydet), geri yükleme, 30 günde bir hatırlatma
 - Excel için CSV dışa aktarma
@@ -54,6 +57,8 @@ src/
     suggestions.ts Not önerileri
     csv.ts         Excel uyumlu CSV
     backupReminder.ts Yedek hatırlatma kuralı
+    goals.ts       Birikim hedefi ilerlemesi
+    presets.ts     Düzenli ödeme hızlı seçimleri
   views/       Ekranlar: Özet, İşlemler, Bütçe, Ayarlar
   components/  Form, sheet, grafikler, ortak parçalar
   store.tsx    Veriyi tutar, localStorage'a kaydeder
