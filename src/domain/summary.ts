@@ -160,3 +160,12 @@ function projectMonthEnd(
     .reduce((sum, { r }) => sum + r.amount, 0)
   return Math.round(fixed + upcomingFixed + (variable / daysElapsed) * totalDays)
 }
+
+/**
+ * Bütçede kalan parayı ayın kalan günlerine (bugün dahil) böler.
+ * Bütçe aşıldıysa 0 döner; negatif "günlük hak" anlamsız.
+ */
+export function dailyAllowance(remaining: Kurus, today: ISODate): Kurus {
+  const daysLeft = daysInMonth(monthOf(today)) - Number(today.slice(8, 10)) + 1
+  return remaining > 0 ? Math.floor(remaining / daysLeft) : 0
+}
