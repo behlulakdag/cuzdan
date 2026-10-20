@@ -1,7 +1,8 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { AnimatedNumber } from '../components/AnimatedNumber'
 import { DonutChart, TrendChart, type DonutSlice } from '../components/charts'
 import { MonthPicker } from '../components/MonthPicker'
+import { YearSheet } from '../components/YearSheet'
 import { dayLabel, daysBetween, monthOf, todayISO } from '../domain/dates'
 import { formatTL, formatTLCompact } from '../domain/money'
 import { nextDueDate } from '../domain/recurring'
@@ -24,6 +25,7 @@ interface Props {
 
 export function SummaryView({ month, onMonthChange, onOpenBudget, onOpenCategory }: Props) {
   const { data, categoryById } = useStore()
+  const [showYear, setShowYear] = useState(false)
   const today = todayISO()
   const currentMonth = monthOf(today)
   const summary = summarizeMonth(data.transactions, month)
@@ -179,6 +181,9 @@ export function SummaryView({ month, onMonthChange, onOpenBudget, onOpenCategory
           <span className="trend-key">
             <span className="dot income" /> Gelir <span className="dot expense" /> Gider
           </span>
+          <button type="button" className="year-link" onClick={() => setShowYear(true)}>
+            Yıl ›
+          </button>
         </h3>
         <TrendChart points={trend} selectedMonth={month} onSelect={onMonthChange} />
       </section>
@@ -210,6 +215,14 @@ export function SummaryView({ month, onMonthChange, onOpenBudget, onOpenCategory
             })}
           </ul>
         </section>
+      )}
+
+      {showYear && (
+        <YearSheet
+          initialYear={Number(month.slice(0, 4))}
+          onClose={() => setShowYear(false)}
+          onOpenMonth={onMonthChange}
+        />
       )}
     </>
   )

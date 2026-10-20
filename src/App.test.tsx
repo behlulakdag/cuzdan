@@ -328,4 +328,23 @@ describe('Cüzdan', () => {
     const rule = JSON.parse(localStorage.getItem('cuzdan:data')!).data.recurring[0]
     expect(rule).toMatchObject({ note: 'Claude', categoryId: 'abonelik', amount: 85000, dayOfMonth: 25 })
   })
+
+  it('yıllık görünümde toplamları ve en çok harcananı gösterir, aya geçilebilir', async () => {
+    const data = emptyData()
+    data.transactions.push(
+      { id: 'a', type: 'income', amount: 3000000, categoryId: 'maas', date: '2026-03-01', note: '' },
+      { id: 'b', type: 'expense', amount: 500000, categoryId: 'kira', date: '2026-03-02', note: '' },
+      { id: 'c', type: 'expense', amount: 100000, categoryId: 'market', date: '2026-07-02', note: '' },
+    )
+    const user = renderApp(data)
+    await user.click(screen.getByRole('button', { name: 'Yıl ›' }))
+    const sheet = screen.getByRole('dialog', { name: 'Yıllık Görünüm' })
+    expect(normalizeSpaces(within(sheet).getByText('2026 net').parentElement!.textContent)).toContain('₺24.000,00')
+    expect(within(sheet).getByText('Mart')).toBeInTheDocument()
+    expect(within(sheet).getByText('Temmuz')).toBeInTheDocument()
+
+    await user.click(within(sheet).getByRole('button', { name: /^Mart 2026/ }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByText('Mart 2026')).toBeInTheDocument()
+  })
 })
