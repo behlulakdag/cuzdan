@@ -15,7 +15,7 @@ Veriler yalnızca telefonda durur; sunucu, hesap veya abonelik yok.
 
 ## iPhone'a kurulum
 
-1. Safari'de `https://kedylicali.github.io/cuzdan/` adresini aç
+1. Safari'de `https://behlulakdag.github.io/cuzdan/` adresini aç
 2. Paylaş düğmesi → **Ana Ekrana Ekle**
 3. Ana ekrandaki ikondan aç; artık internetsiz de çalışır
 
