@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { todayISO } from '../domain/dates'
 import { isDueThisMonth, startMonthForNewRule } from '../domain/recurring'
 import { newId } from '../domain/defaults'
-import { kurusToInput, parseTL } from '../domain/money'
+import { formatTL, kurusToInput, parseTL } from '../domain/money'
 import type { RecurringRule, TxType } from '../domain/types'
 import { useStore } from '../store'
 import { CategoryGrid } from './CategoryGrid'
 import { SegmentedControl } from './SegmentedControl'
-import { Sheet } from './Sheet'
+import { Sheet, useSheet } from './Sheet'
+import { useToast } from './Toast'
 
 interface Props {
   existing?: RecurringRule
@@ -16,6 +17,8 @@ interface Props {
 
 export function RecurringForm({ existing, onClose }: Props) {
   const { data, dispatch } = useStore()
+  const toast = useToast()
+  const sheet = useSheet(onClose)
   const [type, setType] = useState<TxType>(existing?.type ?? 'expense')
   const [amountText, setAmountText] = useState(existing ? kurusToInput(existing.amount) : '')
   const [categoryId, setCategoryId] = useState(existing?.categoryId ?? '')
@@ -28,6 +31,10 @@ export function RecurringForm({ existing, onClose }: Props) {
   const categories = data.categories.filter((c) => c.type === type)
   const amount = parseTL(amountText)
   const canSave = amount !== null && categories.some((c) => c.id === categoryId)
+  const dirty = existing
+    ? amount !== existing.amount || categoryId !== existing.categoryId || day !== existing.dayOfMonth ||
+      note.trim() !== existing.note || type !== existing.type
+    : amountText !== '' || categoryId !== '' || note !== ''
 
   const save = () => {
     if (!canSave || amount === null) return
@@ -43,20 +50,25 @@ export function RecurringForm({ existing, onClose }: Props) {
           startMonth: startMonthForNewRule(day, today, includeThisMonth),
         }
     dispatch({ type: existing ? 'rule/update' : 'rule/add', rule, today })
-    onClose()
+    toast({ text: existing ? 'Düzenli ödeme güncellendi' : `Düzenli ödeme eklendi · ${formatTL(amount)}` })
+    sheet.close()
   }
 
   const remove = () => {
-    if (existing && confirm('Düzenli ödeme silinsin mi? Geçmişte eklenen işlemler kalır.')) {
-      dispatch({ type: 'rule/delete', id: existing.id })
-      onClose()
-    }
+    if (!existing) return
+    dispatch({ type: 'rule/delete', id: existing.id })
+    toast({
+      text: 'Düzenli ödeme silindi · geçmiş kayıtlar duruyor',
+      undo: () => dispatch({ type: 'rule/add', rule: existing, today: todayISO() }),
+    })
+    sheet.close()
   }
 
   return (
     <Sheet
       title={existing ? 'Düzenli Ödemeyi Düzenle' : 'Yeni Düzenli Ödeme'}
-      onClose={onClose}
+      sheet={sheet}
+      dirty={dirty}
       action={{ label: 'Kaydet', onClick: save, disabled: !canSave }}
     >
       <form

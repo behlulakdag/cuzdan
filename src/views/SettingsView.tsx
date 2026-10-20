@@ -1,6 +1,7 @@
 import { useRef, useState, type CSSProperties } from 'react'
 import { ChevronRight, ShareIcon } from '../components/Icons'
 import { RecurringForm } from '../components/RecurringForm'
+import { useToast } from '../components/Toast'
 import { BackupError, parseBackup, serializeBackup } from '../domain/backup'
 import { todayISO } from '../domain/dates'
 import { emptyData } from '../domain/defaults'
@@ -18,7 +19,7 @@ const isStandalone = () =>
 export function SettingsView() {
   const { data, dispatch, categoryById } = useStore()
   const [editing, setEditing] = useState<Editing>(null)
-  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+  const toast = useToast()
   const fileInput = useRef<HTMLInputElement>(null)
 
   const exportBackup = async () => {
@@ -28,9 +29,9 @@ export function SettingsView() {
     if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: 'Cüzdan yedeği' })
-        setMessage({ kind: 'ok', text: 'Yedek paylaşıldı.' })
+        toast({ text: 'Yedek paylaşıldı' })
       } catch (err) {
-        if ((err as Error).name !== 'AbortError') setMessage({ kind: 'error', text: 'Paylaşılamadı.' })
+        if ((err as Error).name !== 'AbortError') toast({ kind: 'error', text: 'Paylaşılamadı' })
       }
       return
     }
@@ -40,7 +41,7 @@ export function SettingsView() {
     a.download = fileName
     a.click()
     URL.revokeObjectURL(url)
-    setMessage({ kind: 'ok', text: 'Yedek indirildi.' })
+    toast({ text: 'Yedek indirildi' })
   }
 
   const importBackup = async (file: File) => {
@@ -50,21 +51,20 @@ export function SettingsView() {
         `${restored.transactions.length} işlem içeren yedek yüklensin mi? Şu anki verilerin yerini alacak.`,
       )
       if (!ok) return
+      const previous = data
       dispatch({ type: 'data/replace', data: restored })
       dispatch({ type: 'recurring/run', today: todayISO() })
-      setMessage({ kind: 'ok', text: 'Yedek geri yüklendi.' })
+      toast({ text: 'Yedek geri yüklendi', undo: () => dispatch({ type: 'data/replace', data: previous }) })
     } catch (err) {
-      setMessage({
-        kind: 'error',
-        text: err instanceof BackupError ? err.message : 'Yedek yüklenemedi.',
-      })
+      toast({ kind: 'error', text: err instanceof BackupError ? err.message : 'Yedek yüklenemedi' })
     }
   }
 
   const resetAll = () => {
-    if (confirm('TÜM veriler silinsin mi? Bu geri alınamaz. Önce yedek almanı öneririm.')) {
+    if (confirm('TÜM veriler silinsin mi? Önce yedek almanı öneririm.')) {
+      const previous = data
       dispatch({ type: 'data/replace', data: emptyData() })
-      setMessage({ kind: 'ok', text: 'Tüm veriler silindi.' })
+      toast({ text: 'Tüm veriler silindi', undo: () => dispatch({ type: 'data/replace', data: previous }) })
     }
   }
 
@@ -132,7 +132,6 @@ export function SettingsView() {
       <p className="section-hint">
         Veriler yalnızca bu telefonda durur. Telefon değiştirirken ya da ara ara yedek almayı unutma.
       </p>
-      {message && <p className={`toast ${message.kind}`}>{message.text}</p>}
 
       <h3 className="section-title">Veri</h3>
       <div className="group">

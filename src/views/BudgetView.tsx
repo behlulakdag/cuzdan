@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { MonthPicker } from '../components/MonthPicker'
-import { Sheet } from '../components/Sheet'
+import { Sheet, useSheet } from '../components/Sheet'
+import { useToast } from '../components/Toast'
 import { formatTL, kurusToInput, parseTL } from '../domain/money'
 import { summarizeMonth, BUDGET_WARNING_RATIO } from '../domain/summary'
 import type { Category, MonthKey } from '../domain/types'
@@ -102,6 +103,8 @@ function ProgressBar({ ratio }: { ratio: number }) {
 
 function BudgetSheet({ category, onClose }: { category: Category; onClose: () => void }) {
   const { data, dispatch } = useStore()
+  const toast = useToast()
+  const sheet = useSheet(onClose)
   const current = data.budgets[category.id]
   const [text, setText] = useState(current ? kurusToInput(current) : '')
   const parsed = parseTL(text)
@@ -109,13 +112,15 @@ function BudgetSheet({ category, onClose }: { category: Category; onClose: () =>
 
   const save = () => {
     dispatch({ type: 'budget/set', categoryId: category.id, limit: parsed ?? 0 })
-    onClose()
+    toast({ text: parsed ? `${category.name} limiti ${formatTL(parsed)}` : `${category.name} limiti kaldırıldı` })
+    sheet.close()
   }
 
   return (
     <Sheet
       title={`${category.emoji} ${category.name}`}
-      onClose={onClose}
+      sheet={sheet}
+      dirty={text !== (current ? kurusToInput(current) : '')}
       action={{ label: 'Kaydet', onClick: save, disabled: !valid }}
     >
       <form
@@ -143,7 +148,11 @@ function BudgetSheet({ category, onClose }: { category: Category; onClose: () =>
             className="danger-button"
             onClick={() => {
               dispatch({ type: 'budget/set', categoryId: category.id, limit: 0 })
-              onClose()
+              toast({
+                text: `${category.name} limiti kaldırıldı`,
+                undo: () => dispatch({ type: 'budget/set', categoryId: category.id, limit: current }),
+              })
+              sheet.close()
             }}
           >
             Limiti Kaldır

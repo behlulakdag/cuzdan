@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -52,8 +52,9 @@ describe('Cüzdan', () => {
     expect(save).toBeEnabled()
     await user.click(save)
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(normalizeSpaces(balanceCard().textContent)).toContain('-₺249,90')
+    expect(normalizeSpaces(screen.getByRole('status').textContent)).toContain('Gider eklendi · ₺249,90')
 
     const stored = JSON.parse(localStorage.getItem('cuzdan:data')!)
     expect(stored.data.transactions).toEqual([
@@ -105,22 +106,51 @@ describe('Cüzdan', () => {
     expect(screen.getByText(/Yemek bütçesinin %90'ına ulaştı/)).toBeInTheDocument()
   })
 
-  it('işlemi düzenleyip silebilir', async () => {
+  it('işlemi silip geri alabilir', async () => {
     const data = emptyData()
     data.transactions.push({
       id: 'a', type: 'expense', amount: 5000, categoryId: 'yemek', date: '2026-10-20', note: 'Kahve',
     })
     const user = renderApp(data)
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     await user.click(screen.getByRole('button', { name: /İşlemler/ }))
     await user.click(screen.getByRole('button', { name: /Kahve/ }))
     const dialog = screen.getByRole('dialog', { name: 'İşlemi Düzenle' })
     expect(within(dialog).getByLabelText('Tutar')).toHaveValue('50')
     await user.click(within(dialog).getByRole('button', { name: 'İşlemi Sil' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 
     expect(screen.queryByText('Kahve')).not.toBeInTheDocument()
     expect(screen.getByText('Bu ay işlem yok.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Geri al' }))
+    expect(screen.getByText('Kahve')).toBeInTheDocument()
+  })
+
+  it('dolu form dışarı dokununca kapanmaz, boş form kapanır', async () => {
+    const user = renderApp()
+    await user.click(screen.getByRole('button', { name: 'Yeni işlem' }))
+    await user.type(within(screen.getByRole('dialog')).getByLabelText('Tutar'), '50')
+    await user.click(document.querySelector('.sheet-backdrop')!)
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await user.clear(within(screen.getByRole('dialog')).getByLabelText('Tutar'))
+    await user.click(document.querySelector('.sheet-backdrop')!)
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('kategoride önceki notları önerir ve tutarı doldurur', async () => {
+    const data = emptyData()
+    data.transactions.push({
+      id: 'a', type: 'expense', amount: 4500, categoryId: 'yemek', date: '2026-10-18', note: 'Kahve',
+    })
+    const user = renderApp(data)
+    await user.click(screen.getByRole('button', { name: 'Yeni işlem' }))
+    const dialog = screen.getByRole('dialog')
+    await user.click(within(dialog).getByRole('radio', { name: /Yemek/ }))
+    await user.click(within(dialog).getByRole('button', { name: /Kahve/ }))
+    expect(within(dialog).getByLabelText('Tutar')).toHaveValue('45')
+    expect(within(dialog).getByLabelText('Not')).toHaveValue('Kahve')
   })
 
   it('aramada Türkçe büyük/küçük harfi doğru eşleştirir', async () => {

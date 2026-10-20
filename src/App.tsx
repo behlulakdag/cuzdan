@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ComponentType, type SVGProps } from 'react'
 import { GaugeIcon, GearIcon, HomeIcon, ListIcon, PlusIcon } from './components/Icons'
+import { ToastProvider } from './components/Toast'
 import { TransactionForm } from './components/TransactionForm'
 import { monthOf, todayISO } from './domain/dates'
 import type { MonthKey, Transaction } from './domain/types'
@@ -61,6 +62,7 @@ export default function App() {
   )
 
   return (
+    <ToastProvider>
     <div className="app">
       <header className="large-title">
         <h1>{current.title}</h1>
@@ -89,5 +91,6 @@ export default function App() {
         <TransactionForm existing={form === 'new' ? undefined : form} onClose={() => setForm(null)} />
       )}
     </div>
+    </ToastProvider>
   )
 }
