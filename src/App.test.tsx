@@ -221,4 +221,30 @@ describe('Cüzdan', () => {
     })
     expect(screen.getByText('Kasım 2026')).toBeInTheDocument()
   })
+
+  it('yeni kategori ekleyip işlem formunda kullanabilir', async () => {
+    const user = renderApp()
+    await user.click(screen.getByRole('button', { name: /Ayarlar/ }))
+    await user.click(screen.getByRole('button', { name: /Kategorileri düzenle/ }))
+    await user.click(screen.getByRole('button', { name: '+ Yeni kategori' }))
+    const form = screen.getByRole('dialog', { name: 'Yeni Kategori' })
+    await user.type(within(form).getByLabelText('Kategori adı'), 'Kahve')
+    await user.click(within(form).getByRole('radio', { name: '☕' }))
+    await user.click(within(form).getByRole('button', { name: 'Kaydet' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Yeni Kategori' })).not.toBeInTheDocument())
+
+    const stored = JSON.parse(localStorage.getItem('cuzdan:data')!).data
+    expect(stored.categories.at(-1)).toMatchObject({ name: 'Kahve', emoji: '☕', type: 'expense' })
+  })
+
+  it('aynı adda kategoriye izin vermez', async () => {
+    const user = renderApp()
+    await user.click(screen.getByRole('button', { name: /Ayarlar/ }))
+    await user.click(screen.getByRole('button', { name: /Kategorileri düzenle/ }))
+    await user.click(screen.getByRole('button', { name: '+ Yeni kategori' }))
+    const form = screen.getByRole('dialog', { name: 'Yeni Kategori' })
+    await user.type(within(form).getByLabelText('Kategori adı'), 'market')
+    expect(within(form).getByText(/zaten var/)).toBeInTheDocument()
+    expect(within(form).getByRole('button', { name: 'Kaydet' })).toBeDisabled()
+  })
 })

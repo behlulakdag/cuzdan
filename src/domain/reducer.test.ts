@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { parseBackup, serializeBackup, BackupError } from './backup'
 import { emptyData } from './defaults'
 import { reducer } from './reducer'
-import type { RecurringRule, Transaction } from './types'
+import type { Category, RecurringRule, Transaction } from './types'
 
 const coffee: Transaction = {
   id: 't1', type: 'expense', amount: 9000, categoryId: 'yemek', date: '2026-10-20', note: 'Kahve',
@@ -67,5 +67,33 @@ describe('backup', () => {
     ],
   ])('%s reddedilir', (_, text) => {
     expect(() => parseBackup(text)).toThrow(BackupError)
+  })
+})
+
+describe('kategoriler', () => {
+  const kahve: Category = { id: 'kahve', name: 'Kahve', emoji: '☕', color: '#A2845E', type: 'expense' }
+
+  it('kategori ekler ve türünü değiştirmeden günceller', () => {
+    let s = reducer(emptyData(), { type: 'category/add', category: kahve })
+    s = reducer(s, { type: 'category/update', category: { ...kahve, name: 'Kafe', type: 'income' } })
+    expect(s.categories.find((c) => c.id === 'kahve')).toEqual({ ...kahve, name: 'Kafe' })
+  })
+
+  it('silinen kategorinin işlemleri ve düzenli ödemeleri Diğer kategorisine taşınır, bütçesi kalkar', () => {
+    let s = reducer(emptyData(), { type: 'category/add', category: kahve })
+    s = reducer(s, { type: 'tx/add', tx: { ...coffee, categoryId: 'kahve' } })
+    s = reducer(s, { type: 'rule/add', rule: { ...netflix, categoryId: 'kahve', startMonth: '2027-01' }, today: '2026-10-20' })
+    s = reducer(s, { type: 'budget/set', categoryId: 'kahve', limit: 10000 })
+    s = reducer(s, { type: 'category/delete', id: 'kahve' })
+    expect(s.categories.some((c) => c.id === 'kahve')).toBe(false)
+    expect(s.transactions[0].categoryId).toBe('diger-gider')
+    expect(s.recurring[0].categoryId).toBe('diger-gider')
+    expect(s.budgets).toEqual({})
+  })
+
+  it('Diğer kategorileri silinemez', () => {
+    const s = emptyData()
+    expect(reducer(s, { type: 'category/delete', id: 'diger-gider' })).toBe(s)
+    expect(reducer(s, { type: 'category/delete', id: 'diger-gelir' })).toBe(s)
   })
 })

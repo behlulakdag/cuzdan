@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 
 /** Bu kadar aşağı sürüklenince bırakıldığında sheet kapanır. */
@@ -96,7 +97,8 @@ export function Sheet({ title, sheet, dirty = false, action, children }: SheetPr
     else setDragY(0)
   }
 
-  return (
+  // Portal: iç içe sheet'lerde üst sheet'in transform'u position: fixed'i bozuyordu.
+  return createPortal(
     <div className={`sheet-backdrop ${closing ? 'closing' : ''}`} onClick={onBackdropClick}>
       <div
         className={`sheet ${closing ? 'closing' : ''} ${shaking ? 'shake' : ''}`}
@@ -146,6 +148,7 @@ export function Sheet({ title, sheet, dirty = false, action, children }: SheetPr
         </div>
         <div className="sheet-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

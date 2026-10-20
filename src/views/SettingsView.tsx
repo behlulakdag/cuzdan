@@ -1,5 +1,6 @@
 import { useRef, useState, type CSSProperties } from 'react'
 import { ChevronRight, ShareIcon } from '../components/Icons'
+import { CategoryManager } from '../components/CategoryManager'
 import { RecurringForm } from '../components/RecurringForm'
 import { useToast } from '../components/Toast'
 import { BackupError, parseBackup, serializeBackup } from '../domain/backup'
@@ -20,6 +21,7 @@ export function SettingsView() {
   const { data, dispatch, categoryById } = useStore()
   const [editing, setEditing] = useState<Editing>(null)
   const toast = useToast()
+  const [managingCategories, setManagingCategories] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
   const exportBackup = async () => {
@@ -109,6 +111,24 @@ export function SettingsView() {
         </button>
       </div>
 
+      <h3 className="section-title">Kategoriler</h3>
+      <div className="group">
+        <button type="button" className="tx-row" onClick={() => setManagingCategories(true)}>
+          <span className="category-stack" aria-hidden>
+            {data.categories.slice(0, 4).map((c) => (
+              <span key={c.id} style={{ '--cat': c.color } as CSSProperties}>
+                {c.emoji}
+              </span>
+            ))}
+          </span>
+          <span className="tx-text">
+            <span className="tx-title">Kategorileri düzenle</span>
+            <span className="tx-sub">{data.categories.length} kategori</span>
+          </span>
+          <ChevronRight className="row-chevron" />
+        </button>
+      </div>
+
       <h3 className="section-title">Yedekleme</h3>
       <div className="group">
         <button type="button" className="row-button" onClick={exportBackup}>
@@ -146,6 +166,7 @@ export function SettingsView() {
 
       <p className="footer-note">Cüzdan · internetsiz çalışır · verilerin sende kalır</p>
 
+      {managingCategories && <CategoryManager onClose={() => setManagingCategories(false)} />}
       {editing && <RecurringForm existing={editing.rule} onClose={() => setEditing(null)} />}
     </>
   )

@@ -1,5 +1,5 @@
 import { materializeRecurring } from './recurring'
-import type { AppData, ISODate, Kurus, RecurringRule, Transaction } from './types'
+import type { AppData, Category, ISODate, Kurus, RecurringRule, Transaction } from './types'
 
 export type Action =
   | { type: 'tx/add'; tx: Transaction }
@@ -11,6 +11,15 @@ export type Action =
   | { type: 'rule/delete'; id: string }
   | { type: 'recurring/run'; today: ISODate }
   | { type: 'data/replace'; data: AppData }
+  | { type: 'category/add'; category: Category }
+  | { type: 'category/update'; category: Category }
+  | { type: 'category/delete'; id: string }
+
+/** Silinemeyen, silinen kategorilerin kayıtlarının taşındığı kategoriler */
+export const FALLBACK_CATEGORY: Record<Category['type'], string> = {
+  expense: 'diger-gider',
+  income: 'diger-gelir',
+}
 
 function runRecurring(state: AppData, today: ISODate): AppData {
   const { rules, created } = materializeRecurring(state.recurring, today)
@@ -54,5 +63,31 @@ export function reducer(state: AppData, action: Action): AppData {
       return runRecurring(state, action.today)
     case 'data/replace':
       return action.data
+    case 'category/add':
+      return { ...state, categories: [...state.categories, action.category] }
+    case 'category/update':
+      return {
+        ...state,
+        categories: state.categories.map((c) =>
+          // Tür değişirse eski işlemler yanlış tarafa geçerdi; tür sabit tutulur.
+          c.id === action.category.id ? { ...action.category, type: c.type } : c,
+        ),
+      }
+    case 'category/delete': {
+      const target = state.categories.find((c) => c.id === action.id)
+      if (!target || Object.values(FALLBACK_CATEGORY).includes(action.id)) return state
+      const fallback = FALLBACK_CATEGORY[target.type]
+      const move = <T extends { categoryId: string }>(item: T): T =>
+        item.categoryId === action.id ? { ...item, categoryId: fallback } : item
+      const budgets = { ...state.budgets }
+      delete budgets[action.id]
+      return {
+        ...state,
+        categories: state.categories.filter((c) => c.id !== action.id),
+        transactions: state.transactions.map(move),
+        recurring: state.recurring.map(move),
+        budgets,
+      }
+    }
   }
 }

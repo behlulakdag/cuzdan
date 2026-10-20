@@ -1296,3 +1296,100 @@ select {
   font-weight: 500;
   color: var(--accent);
 }
+
+/* ---------- Kategori yönetimi ---------- */
+
+.category-stack {
+  display: flex;
+  flex: none;
+}
+
+/* Üst üste binen küçük simgeler: tek düz ikon yerine kategorilerden bir deste. */
+.category-stack span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: -10px;
+  border-radius: 50%;
+  font-size: 15px;
+  background: color-mix(in srgb, var(--cat) 25%, var(--surface));
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.category-stack span:first-child {
+  margin-left: 0;
+}
+
+.category-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 4px;
+}
+
+.category-preview-icon {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  font-size: 40px;
+  background: color-mix(in srgb, var(--cat) 22%, var(--surface));
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--cat) 45%, transparent),
+    0 10px 24px color-mix(in srgb, var(--cat) 30%, transparent);
+  transition: background 0.25s, box-shadow 0.25s;
+  animation: pop-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+
+.category-preview-name {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.picker-grid {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.emoji-grid {
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.emoji-grid button {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  font-size: 22px;
+  text-align: center;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.emoji-grid button.selected {
+  background: var(--fill);
+  transform: scale(1.12);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.color-grid {
+  grid-template-columns: repeat(6, 1fr);
+  justify-items: center;
+}
+
+.color-grid button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--swatch);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.color-grid button.selected {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--swatch);
+}
